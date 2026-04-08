@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Sector Intelligence Tracker</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Manrope:wght@600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-error-container": "#93000a",
+                      "surface-dim": "#d8dadc",
+                      "on-tertiary-fixed-variant": "#822800",
+                      "background": "#f7f9fb",
+                      "primary-container": "#1777c9",
+                      "on-surface-variant": "#414751",
+                      "surface": "#f7f9fb",
+                      "primary-fixed-dim": "#a1c9ff",
+                      "surface-container-highest": "#e0e3e5",
+                      "on-surface": "#191c1e",
+                      "outline-variant": "#c0c7d3",
+                      "tertiary-fixed-dim": "#ffb59c",
+                      "surface-container-low": "#f2f4f6",
+                      "on-primary-fixed": "#001c38",
+                      "surface-container-high": "#e6e8ea",
+                      "on-background": "#191c1e",
+                      "on-primary": "#ffffff",
+                      "on-tertiary-fixed": "#380c00",
+                      "error-container": "#ffdad6",
+                      "on-secondary-fixed": "#111c2c",
+                      "on-secondary": "#ffffff",
+                      "surface-tint": "#0060a8",
+                      "outline": "#717783",
+                      "secondary": "#545f72",
+                      "on-primary-fixed-variant": "#004880",
+                      "primary-fixed": "#d2e4ff",
+                      "tertiary-fixed": "#ffdbcf",
+                      "tertiary": "#a13a0f",
+                      "on-tertiary-container": "#fffbff",
+                      "on-primary-container": "#fdfcff",
+                      "on-error": "#ffffff",
+                      "secondary-fixed-dim": "#bcc7dd",
+                      "inverse-on-surface": "#eff1f3",
+                      "on-secondary-container": "#586377",
+                      "secondary-container": "#d5e0f7",
+                      "inverse-surface": "#2d3133",
+                      "on-tertiary": "#ffffff",
+                      "surface-bright": "#f7f9fb",
+                      "error": "#ba1a1a",
+                      "primary": "#005ea4",
+                      "surface-container-lowest": "#ffffff",
+                      "tertiary-container": "#c25227",
+                      "surface-variant": "#e0e3e5",
+                      "surface-container": "#eceef0",
+                      "on-secondary-fixed-variant": "#3c475a",
+                      "inverse-primary": "#a1c9ff",
+                      "secondary-fixed": "#d8e3fa"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.125rem",
+                      "lg": "0.25rem",
+                      "xl": "0.5rem",
+                      "full": "0.75rem"
+              },
+              "fontFamily": {
+                      "headline": ["Manrope"],
+                      "body": ["Inter"],
+                      "label": ["Inter"]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; color: #191c1e; }
+        .font-manrope { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-card { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); }
+        .editorial-shadow { box-shadow: 0px 12px 32px rgba(25, 28, 30, 0.04); }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- TopNavBar -->
+<header class="bg-white dark:bg-slate-900 shadow-sm dark:shadow-none flex justify-between items-center w-full px-12 py-4 max-w-full fixed top-0 z-50">
+<div class="flex items-center gap-8">
+<span class="text-xl font-extrabold tracking-tighter text-blue-800 dark:text-blue-300 font-manrope">Sector Intelligence Tracker</span>
+<nav class="hidden md:flex gap-6 items-center">
+<!-- Dropdown Simulator -->
+<div class="relative group">
+<button class="flex items-center gap-2 text-blue-700 dark:text-blue-400 border-b-2 border-blue-700 dark:border-blue-400 pb-1 font-manrope font-semibold text-sm">
+                        Fintech Payments
+                        <span class="material-symbols-outlined text-sm">expand_more</span>
+</button>
+<div class="absolute top-full left-0 mt-2 w-56 bg-white shadow-xl rounded-xl border border-outline-variant/20 hidden group-hover:block overflow-hidden">
+<a class="block px-4 py-3 text-sm text-slate-600 hover:bg-slate-50" href="#">Analytics Consulting</a>
+<a class="block px-4 py-3 text-sm text-slate-600 hover:bg-slate-50" href="#">Wealthtech</a>
+<a class="block px-4 py-3 text-sm text-slate-600 hover:bg-slate-50" href="#">Supply Chain Tech</a>
+<a class="block px-4 py-3 text-sm text-slate-600 hover:bg-slate-50" href="#">Boutique Consulting</a>
+</div>
+</div>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-primary hover:bg-primary-container text-white px-5 py-2.5 rounded-md font-manrope font-bold text-sm transition-all duration-150 ease-in-out active:scale-95">
+                Generate PDF Report
+            </button>
+<div class="flex gap-2">
+<button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200">
+<span class="material-symbols-outlined text-slate-600" data-icon="notifications">notifications</span>
+</button>
+<button class="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors duration-200">
+<span class="material-symbols-outlined text-slate-600" data-icon="account_circle">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-16 h-[calc(100vh-64px)] w-64 bg-slate-50 dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col p-4 z-40">
+<div class="flex items-center gap-3 px-3 py-6 mb-4">
+<div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+<img alt="User profile" class="w-full h-full rounded-full object-cover" data-alt="Professional portrait of a business intelligence analyst with a neutral background and professional lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuApkcHWZNdOfSGXhIsJW0VX6_LqWHEt3xGJjzSwiiKquS_YKFwQcW7snJ7-Limk-IGxdBlx86lNqDLsp42ryUChwpYet5HbBdrY5HQ1ADpusiLMKCav6PGcWij5iy5mJ0xzysWwfiNp7AJ2PgkQx8wulEvzuqdES8SmIIrruyrb5dfcopHZGDtp3jw1fHFzP3e51USuGjIGYGYryp4bAwGZn8VaUrEHJNZjPbuOix1lzBCeOPPGmHVqug7snL1ZSRC-nS6N9dP5Kg"/>
+</div>
+<div>
+<p class="font-manrope font-bold text-sm text-on-surface">Bangalore Hub</p>
+<p class="text-xs text-slate-500">Startup Intelligence</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-3 py-3 bg-white dark:bg-slate-900 text-blue-700 dark:text-blue-400 shadow-sm rounded-lg font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span> Ecosystem Overview
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-200 rounded-lg font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="hub">hub</span> Market Map
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-200 rounded-lg font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="payments">payments</span> Funding Trends
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-200 rounded-lg font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="business_center">business_center</span> Startup Directory
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 dark:text-slate-400 hover:text-blue-600 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-all duration-200 rounded-lg font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span> Competitor Intel
+            </a>
+</nav>
+<div class="pt-4 border-t border-slate-200 dark:border-slate-800 space-y-1">
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 hover:bg-slate-200/50 transition-all rounded-lg font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span> Settings
+            </a>
+<a class="flex items-center gap-3 px-3 py-3 text-slate-500 hover:bg-slate-200/50 transition-all rounded-lg font-manrope font-semibold text-sm" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span> Support
+            </a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="ml-64 mt-16 p-12">
+<!-- Metric Summary Cards -->
+<div class="grid grid-cols-4 gap-6 mb-8">
+<div class="bg-surface-container-lowest p-6 rounded-xl editorial-shadow border border-outline-variant/10">
+<p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Avg App Rating</p>
+<div class="flex items-end gap-2">
+<span class="text-4xl font-extrabold font-manrope text-on-surface">4.2</span>
+<span class="text-green-600 text-sm font-bold pb-1 flex items-center"><span class="material-symbols-outlined text-sm">trending_up</span> 0.3</span>
+</div>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl editorial-shadow border border-outline-variant/10">
+<p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Top Hiring Co</p>
+<p class="text-2xl font-extrabold font-manrope text-on-surface leading-tight">Razorpay</p>
+<p class="text-xs text-slate-500 mt-1">42 Open Roles</p>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl editorial-shadow border border-outline-variant/10">
+<p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">Brand Leader</p>
+<p class="text-2xl font-extrabold font-manrope text-on-surface leading-tight">PhonePe</p>
+<p class="text-xs text-slate-500 mt-1">Share of Voice: 38%</p>
+</div>
+<div class="bg-surface-container-lowest p-6 rounded-xl editorial-shadow border border-outline-variant/10">
+<p class="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-2">News Mentions (30d)</p>
+<div class="flex items-end gap-2">
+<span class="text-4xl font-extrabold font-manrope text-on-surface">1,248</span>
+<span class="text-blue-600 text-sm font-bold pb-1 flex items-center"><span class="material-symbols-outlined text-sm">equalizer</span> High</span>
+</div>
+</div>
+</div>
+<!-- Highlighted Insight Box -->
+<div class="mb-12 border-l-4 border-primary bg-primary/5 p-6 rounded-r-xl">
+<div class="flex items-start gap-4">
+<span class="material-symbols-outlined text-primary mt-1" data-icon="lightbulb" data-weight="fill" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+<div>
+<h3 class="font-manrope font-bold text-primary mb-1">Sector Momentum Insight</h3>
+<p class="text-on-surface-variant font-medium leading-relaxed">
+                        The Fintech Payments sector in Bangalore is showing a <span class="font-bold text-on-surface">15% increase in hiring velocity</span> compared to the previous quarter. Consolidation trends are accelerating as Brand Leaders leverage increased news frequency to dominate search volume, specifically across digital wallet and UPI infrastructure keywords.
+                    </p>
+</div>
+</div>
+</div>
+<!-- Main Chart Grid -->
+<div class="grid grid-cols-2 gap-8 mb-8">
+<!-- App Store Rating Chart -->
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow border border-outline-variant/10">
+<h4 class="font-manrope font-bold text-lg mb-6 flex justify-between items-center">
+                    App Store Rating
+                    <span class="text-xs font-medium text-slate-400">Scale: 3.0 – 5.0</span>
+</h4>
+<div class="space-y-4">
+<div class="group">
+<div class="flex justify-between text-xs font-bold mb-1 uppercase tracking-tighter"><span>PhonePe</span> <span class="text-primary">4.6</span></div>
+<div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 80%"></div>
+</div>
+</div>
+<div class="group">
+<div class="flex justify-between text-xs font-bold mb-1 uppercase tracking-tighter"><span>Razorpay</span> <span class="text-primary">4.4</span></div>
+<div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-[#008080] rounded-full" style="width: 70%"></div>
+</div>
+</div>
+<div class="group">
+<div class="flex justify-between text-xs font-bold mb-1 uppercase tracking-tighter"><span>Cred</span> <span class="text-primary">4.8</span></div>
+<div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-[#a13a0f] rounded-full" style="width: 90%"></div>
+</div>
+</div>
+<div class="group">
+<div class="flex justify-between text-xs font-bold mb-1 uppercase tracking-tighter"><span>Slice</span> <span class="text-primary">4.1</span></div>
+<div class="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-[#6A5ACD] rounded-full" style="width: 55%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Hiring Velocity Chart -->
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow border border-outline-variant/10">
+<h4 class="font-manrope font-bold text-lg mb-6">Hiring Velocity (Open LinkedIn Roles)</h4>
+<div class="flex items-end justify-between h-48 gap-4 px-4">
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-primary rounded-t-lg" style="height: 100%"></div>
+<span class="text-[10px] font-bold uppercase truncate w-full text-center">PhonePe</span>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-[#008080] rounded-t-lg" style="height: 85%"></div>
+<span class="text-[10px] font-bold uppercase truncate w-full text-center">Razorpay</span>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-[#a13a0f] rounded-t-lg" style="height: 40%"></div>
+<span class="text-[10px] font-bold uppercase truncate w-full text-center">Cred</span>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-[#6A5ACD] rounded-t-lg" style="height: 60%"></div>
+<span class="text-[10px] font-bold uppercase truncate w-full text-center">Juspay</span>
+</div>
+<div class="flex flex-col items-center gap-2 flex-1">
+<div class="w-full bg-[#FFBF00] rounded-t-lg" style="height: 30%"></div>
+<span class="text-[10px] font-bold uppercase truncate w-full text-center">Groww</span>
+</div>
+</div>
+</div>
+<!-- News Mentions vs Employer Score -->
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow border border-outline-variant/10 relative overflow-hidden h-96">
+<h4 class="font-manrope font-bold text-lg mb-4">News Mentions vs Employer Score</h4>
+<div class="absolute inset-x-8 inset-y-24 border-b border-l border-slate-200">
+<!-- Bubble 1 -->
+<div class="absolute w-12 h-12 bg-primary/30 border-2 border-primary rounded-full flex items-center justify-center text-[10px] font-bold text-primary" style="bottom: 60%; left: 70%;">PhonePe</div>
+<!-- Bubble 2 -->
+<div class="absolute w-16 h-16 bg-[#008080]/30 border-2 border-[#008080] rounded-full flex items-center justify-center text-[10px] font-bold text-[#008080]" style="bottom: 40%; left: 40%;">Razorpay</div>
+<!-- Bubble 3 -->
+<div class="absolute w-8 h-8 bg-[#a13a0f]/30 border-2 border-[#a13a0f] rounded-full flex items-center justify-center text-[10px] font-bold text-[#a13a0f]" style="bottom: 80%; left: 20%;">Cred</div>
+<!-- Bubble 4 -->
+<div class="absolute w-10 h-10 bg-[#6A5ACD]/30 border-2 border-[#6A5ACD] rounded-full flex items-center justify-center text-[10px] font-bold text-[#6A5ACD]" style="bottom: 20%; left: 80%;">Groww</div>
+<span class="absolute bottom-[-24px] left-1/2 -translate-x-1/2 text-[10px] font-bold text-slate-400 uppercase tracking-widest">News Mention Volume</span>
+<span class="absolute left-[-40px] top-1/2 -rotate-90 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Employer Score</span>
+</div>
+</div>
+<!-- News Mention Frequency Bar -->
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow border border-outline-variant/10">
+<h4 class="font-manrope font-bold text-lg mb-6">News Mention Frequency</h4>
+<div class="space-y-6">
+<div class="flex items-center gap-4">
+<span class="w-20 text-[10px] font-bold text-on-surface uppercase truncate">Regulatory</span>
+<div class="flex-1 h-4 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-primary" style="width: 85%"></div>
+</div>
+<span class="w-8 text-[10px] font-bold text-slate-500">850</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="w-20 text-[10px] font-bold text-on-surface uppercase truncate">Funding</span>
+<div class="flex-1 h-4 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-[#008080]" style="width: 45%"></div>
+</div>
+<span class="w-8 text-[10px] font-bold text-slate-500">450</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="w-20 text-[10px] font-bold text-on-surface uppercase truncate">Product</span>
+<div class="flex-1 h-4 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-[#a13a0f]" style="width: 65%"></div>
+</div>
+<span class="w-8 text-[10px] font-bold text-slate-500">650</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="w-20 text-[10px] font-bold text-on-surface uppercase truncate">Leadership</span>
+<div class="flex-1 h-4 bg-slate-100 rounded-full overflow-hidden">
+<div class="h-full bg-[#6A5ACD]" style="width: 25%"></div>
+</div>
+<span class="w-8 text-[10px] font-bold text-slate-500">250</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Brand Momentum Line Chart Spanning Full Width -->
+<div class="bg-surface-container-lowest p-8 rounded-xl editorial-shadow border border-outline-variant/10">
+<div class="flex justify-between items-center mb-10">
+<h4 class="font-manrope font-bold text-xl">Brand Momentum — Google Trends (12 Months)</h4>
+<div class="flex gap-4">
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-primary"></div><span class="text-xs font-bold text-slate-500">PhonePe</span></div>
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#008080]"></div><span class="text-xs font-bold text-slate-500">Razorpay</span></div>
+<div class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-[#a13a0f]"></div><span class="text-xs font-bold text-slate-500">Cred</span></div>
+</div>
+</div>
+<div class="relative h-64 w-full">
+<svg class="w-full h-full preserve-3d" style="overflow: visible;" viewbox="0 0 1000 300">
+<!-- PhonePe Line -->
+<path d="M 0 250 Q 150 150 300 180 T 600 80 T 1000 50" fill="none" stroke="#005ea4" stroke-linecap="round" stroke-width="3"></path>
+<!-- Razorpay Line -->
+<path d="M 0 280 Q 200 220 400 240 T 700 160 T 1000 130" fill="none" stroke="#008080" stroke-linecap="round" stroke-width="3"></path>
+<!-- Cred Line -->
+<path d="M 0 290 Q 250 270 500 180 T 750 100 T 1000 200" fill="none" stroke="#a13a0f" stroke-dasharray="8 4" stroke-linecap="round" stroke-width="3"></path>
+<!-- Grid Lines -->
+<line stroke="#c0c7d3" stroke-opacity="0.2" stroke-width="1" x1="0" x2="1000" y1="300" y2="300"></line>
+<line stroke="#c0c7d3" stroke-opacity="0.2" stroke-width="1" x1="0" x2="1000" y1="225" y2="225"></line>
+<line stroke="#c0c7d3" stroke-opacity="0.2" stroke-width="1" x1="0" x2="1000" y1="150" y2="150"></line>
+<line stroke="#c0c7d3" stroke-opacity="0.2" stroke-width="1" x1="0" x2="1000" y1="75" y2="75"></line>
+<line stroke="#c0c7d3" stroke-opacity="0.2" stroke-width="1" x1="0" x2="1000" y1="0" y2="0"></line>
+</svg>
+<div class="flex justify-between mt-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+<span>Jan</span><span>Mar</span><span>May</span><span>Jul</span><span>Sep</span><span>Nov</span><span>Dec</span>
+</div>
+</div>
+</div>
+</main>
+<!-- Map Context Footer or Background Element Example -->
+<div class="fixed bottom-8 right-8 w-64 h-48 rounded-2xl overflow-hidden shadow-2xl border-4 border-white z-50">
+<img class="w-full h-full object-cover" data-alt="Stylized minimalist map of Bangalore urban grid with soft blue and gray color scheme highlighting technology corridors" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAfe61GLr3oO3c6mwJgtvLr-ivmkMsOhzAdK4IARw7X0KiRefO1E4DYs5J8ftKywC49NpbD0Mo4ICDfKu5N432FbVwitNnJxrWM5jFuTpYp0vC7EVfhZaz0MdCl5evkttfmVr1YWyEpKkzn9crEYOBPPGUGzh0Pn2aVwpEj7cu4mXEq6CeTqEmPrz8aI91HueCbkDHmiWMrJuKhhXYay2OvYFu0jSsC6cXpoY4iyfazSDb_3uZnGmDLr-vK5BGsJCwIEHx0QV_dvg"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex flex-col justify-end p-4">
+<span class="text-white font-manrope font-bold text-sm">Bangalore Ecosystem</span>
+<span class="text-white/70 text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-[12px]">location_on</span> Hub of Innovation
+            </span>
+</div>
+</div>
+</body></html>
