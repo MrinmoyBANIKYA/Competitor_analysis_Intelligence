@@ -15,6 +15,15 @@ from pathlib import Path
 
 import pandas as pd
 from fpdf import FPDF, XPos, YPos
+from data.sector_meta import SECTOR_META
+from data.company_profiles import COMPANY_PROFILES
+
+def sanitize(text: str) -> str:
+    """Sanitize strings for fpdf2 to avoid latin-1 encoding errors."""
+    if not isinstance(text, str):
+        text = str(text)
+    text = text.replace("—", "-").replace("–", "-").replace("’", "'").replace("‘", "'").replace("“", '"').replace("”", '"')
+    return text.encode("latin-1", "replace").decode("latin-1")
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -113,6 +122,22 @@ class SectorReport(FPDF):
                       new_x=XPos.RIGHT, new_y=YPos.TOP, align="C")
         self.ln()
 
+    def _bullet(self, text: str):
+        self.set_font("Helvetica", "", 10)
+        self.set_text_color(*DARK)
+        self.cell(6, 6, chr(149), new_x=XPos.RIGHT, new_y=YPos.TOP, align="R")
+        self.multi_cell(0, 6, text)
+        self.ln(2)
+
+    def _kv_row(self, key: str, value: str):
+        self.set_font("Helvetica", "B", 9)
+        self.set_text_color(*GREY)
+        self.cell(40, 6, key, new_x=XPos.RIGHT, new_y=YPos.TOP)
+        self.set_font("Helvetica", "", 10)
+        self.set_text_color(*DARK)
+        self.multi_cell(0, 6, str(value))
+        self.ln(1)
+
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -128,6 +153,7 @@ def generate_report(
     insight_text: str,
     personalised_line_1: str = "",
     personalised_line_2: str = "",
+    meta: dict = None,
 ) -> bytes:
     """
     Build a 5-page Sector Intelligence PDF and return raw bytes.
@@ -220,12 +246,97 @@ def generate_report(
     pdf.ln(6)
     pdf.set_font("Helvetica", "I", 9)
     pdf.set_text_color(*GREY)
-    pdf.cell(0, 6, f"Built by {AUTHOR_NAME} \u00b7 Bangalore",
+    pdf.cell(0, 6, f"Built by {AUTHOR_NAME} - Bangalore",
              new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
 
-    # ── PAGE 2 — Brand Momentum ───────────────────────────────
+    # ── PAGE 2 — Market Intelligence ───────────────────────────
     pdf.add_page()
-    pdf._section_title("Brand Momentum \u2014 Google Trends 12 Months")
+    pdf._section_title(sanitize("Market Intelligence"))
+
+    meta_dict = meta or {}
+    pdf.set_font("Helvetica", "B", 9)
+    # KPI grid
+    pdf.set_fill_color(*LIGHT_BG)
+    pdf.cell((PAGE_W - 2 * MARGIN) / 2, 10, sanitize(f"Total Addressable Market: ${meta_dict.get('tam_usd_bn','N/A')}Bn"), border=0, fill=True, new_x=XPos.RIGHT, new_y=YPos.TOP)
+    pdf.cell((PAGE_W - 2 * MARGIN) / 2, 10, sanitize(f"CAGR (5yr): {meta_dict.get('cagr_pct','N/A')}%"), border=0, fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    pdf.ln(2)
+    pdf.cell((PAGE_W - 2 * MARGIN) / 2, 10, sanitize(f"Market Stage: {meta_dict.get('market_stage','N/A')}"), border=0, fill=True, new_x=XPos.RIGHT, new_y=YPos.TOP)
+    pdf.cell((PAGE_W - 2 * MARGIN) / 2, 10, sanitize(f"Saturation: {meta_dict.get('saturation_score','N/A')}/100"), border=0, fill=True, new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+
+    pdf.ln(4)
+    pdf._section_title(sanitize("Key Tailwinds"))
+    for t in meta_dict.get("key_tailwinds", []):
+        pdf._bullet(sanitize(t))
+
+    pdf.ln(4)
+    pdf._section_title(sanitize("Unsolved Problems (Market Gaps)"))
+    for p in meta_dict.get("unsolved_problems", []):
+        pdf._bullet(sanitize(p))
+
+    pdf.ln(4)
+    pdf._section_title(sanitize("Community Signals (Reddit)"))
+    for r in meta_dict.get("reddit_pain_points", []):
+        x, y = pdf.get_x(), pdf.get_y()
+        pdf.set_draw_color(255, 69, 0)
+        pdf.set_line_width(1.5)
+        pdf.line(x+4, y, x+4, y+10)
+        pdf.set_xy(x+8, y)
+        pdf.set_font("Helvetica", "I", 9)
+        pdf.set_text_color(139, 148, 158)
+        pdf.multi_cell(0, 5, sanitize(r))
+        pdf.set_text_color(*DARK)
+        pdf.ln(2)
+
+    # ── PAGE 3 — Sector Player Map ───────────────────────────
+    pdf.add_page()
+    pdf._section_title(sanitize("Sector Player Map"))
+    pdf._body_text(sanitize(f"All known players in {sector_name} organized by scale and stage."))
+
+    for tier_key, tier_label in [
+        ("public_companies", "Public Companies"),
+        ("private_giants", "Private Giants (>$500M valuation)"),
+        ("rising_startups", "Rising Startups (<$500M valuation)"),
+    ]:
+        pdf.set_font("Helvetica", "B", 10)
+        pdf.set_text_color(*ACCENT)
+        pdf.cell(0, 7, sanitize(tier_label), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+        pdf.set_text_color(*DARK)
+        
+        players = meta_dict.get("players", {}).get(tier_key, [])
+        pdf._table_header(["Company", "Valuation / Mkt Cap", "Stage", "HQ"], [65, 45, 40, 24])
+        for p in players:
+            val = f"${p['valuation_usd_bn']}Bn" if p.get('valuation_usd_bn') else "Undisclosed"
+            pdf._table_row([
+                sanitize(p['name']),
+                sanitize(val),
+                sanitize(p.get('stage','N/A')),
+                sanitize(p.get('hq','N/A')),
+            ], [65, 45, 40, 24])
+        pdf.ln(6)
+
+    # ── PAGE 4 — Target Company Deep-Dive ────────────────────
+    pdf.add_page()
+    profile = COMPANY_PROFILES.get(company_name, {})
+    pdf._section_title(sanitize(f"Company Deep-Dive: {company_name}"))
+
+    pdf.set_font("Helvetica", "", 9)
+    pdf._kv_row("Founded", sanitize(str(profile.get('founded','N/A'))))
+    pdf._kv_row("Valuation", sanitize(f"${profile.get('valuation_usd_bn','N/A')}Bn"))
+    pdf._kv_row("Last Round", sanitize(f"{profile.get('last_round','N/A')} - ${profile.get('last_round_amount_usd_m','N/A')}M ({profile.get('last_round_year','')})"))
+    pdf._kv_row("Employees", sanitize(f"~{profile.get('employee_count_approx','N/A')}"))
+    pdf._kv_row("ICP", sanitize(profile.get('icp','N/A')))
+    pdf._kv_row("Revenue Model", sanitize(profile.get('revenue_model','N/A')))
+    pdf._kv_row("Competitive Moat", sanitize(profile.get('competitive_moat','N/A')))
+
+    pdf.ln(6)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(0, 6, sanitize("Known Strategic Gaps"), new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+    for gap in profile.get('known_gaps', []):
+        pdf._bullet(sanitize(gap))
+
+    # ── PAGE 5 — Brand Momentum ───────────────────────────────
+    pdf.add_page()
+    pdf._section_title("Brand Momentum - Google Trends 12 Months")
 
     # Try to embed a Plotly trends chart as PNG
     chart_embedded = False
@@ -262,7 +373,7 @@ def generate_report(
             pass
 
     if not chart_embedded:
-        pdf._body_text("[Chart unavailable — install kaleido for Plotly image export]")
+        pdf._body_text("[Chart unavailable - install kaleido for Plotly image export]")
 
     pdf.ln(6)
     # Explanation
@@ -297,7 +408,7 @@ def generate_report(
         pdf.ln(6)
         best_r = ratings[best_company]["rating"]
         pdf._body_text(
-            f"\u2b50 {best_company} leads with a {best_r:.1f} rating on the Google Play Store, "
+            f"[*] {best_company} leads with a {best_r:.1f} rating on the Google Play Store, "
             f"reflecting strong product-market fit and user satisfaction."
         )
     else:
@@ -323,7 +434,7 @@ def generate_report(
         pdf.ln(6)
         if top_hiring_co:
             pdf._body_text(
-                f"\U0001f680 {top_hiring_co} leads hiring velocity with "
+                f">> {top_hiring_co} leads hiring velocity with "
                 f"{hiring[top_hiring_co]} open roles, signalling aggressive growth plans."
             )
     else:
@@ -361,7 +472,7 @@ def generate_report(
         pdf.set_font("Helvetica", "", 10)
         pdf.multi_cell(0, 6,
             f"{top_n} dominates brand momentum with {news[top_n]} news mentions "
-            f"in the past 30 days — highest in the {sector_name} cohort.")
+            f"in the past 30 days - highest in the {sector_name} cohort.")
         pdf.ln(4)
     else:
         pdf.set_font("Helvetica", "", 10)
@@ -379,8 +490,8 @@ def generate_report(
         pdf.cell(8, 7, "3.", new_x=XPos.RIGHT, new_y=YPos.TOP)
         pdf.set_font("Helvetica", "", 10)
         pdf.multi_cell(0, 6,
-            f"{best_c} ({best_v:.1f}\u2605) leads app ratings while "
-            f"{worst_c} ({worst_v:.1f}\u2605) trails — a {gap:.1f}-point gap "
+            f"{best_c} ({best_v:.1f}/5) leads app ratings while "
+            f"{worst_c} ({worst_v:.1f}/5) trails - a {gap:.1f}-point gap "
             f"reflecting divergent product experiences.")
         pdf.ln(4)
     else:
@@ -431,7 +542,7 @@ def generate_report(
     pdf.ln(10)
     pdf.set_font("Helvetica", "I", 8)
     pdf.set_text_color(*GREY)
-    pdf.cell(0, 6, f"Sector Intelligence Tracker \u00b7 Built by {AUTHOR_NAME}",
+    pdf.cell(0, 6, f"Sector Intelligence Tracker | Built by {AUTHOR_NAME}",
              new_x=XPos.LMARGIN, new_y=YPos.NEXT, align="C")
 
     return bytes(pdf.output())

@@ -26,3 +26,6 @@ pytrends>=4.9.2
 
 # Google Play Store
 google-play-scraper>=1.2.6
+
+# AI Client
+groq>=0.5.0

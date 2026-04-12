@@ -38,8 +38,16 @@ SECTORS: dict[str, dict] = {
             "Simpl": "simpl-buy-now-pay-later",
             "Scapia": "scapia",
         },
+        "funding": {
+            "Razorpay": {"last_round": "Series F", "amount_usd_m": 375, "year": 2021, "total_raised_usd_m": 816, "valuation_tier": "Unicorn"},
+            "PhonePe": {"last_round": "Private Equity", "amount_usd_m": 850, "year": 2023, "total_raised_usd_m": 2200, "valuation_tier": "Unicorn"},
+            "Juspay": {"last_round": "Series C", "amount_usd_m": 60, "year": 2021, "total_raised_usd_m": 87, "valuation_tier": "Soonicorn"},
+            "BharatPe": {"last_round": "Series F", "amount_usd_m": 370, "year": 2021, "total_raised_usd_m": 680, "valuation_tier": "Unicorn"},
+            "Simpl": {"last_round": "Series B", "amount_usd_m": 40, "year": 2021, "total_raised_usd_m": 83, "valuation_tier": "Growth"},
+            "Scapia": {"last_round": "Series A", "amount_usd_m": 23, "year": 2023, "total_raised_usd_m": 32, "valuation_tier": "Growth"},
+        },
         "insight": (
-            "PhonePe leads on brand momentum and hiring velocity — a UPI scale play. "
+            "PhonePe leads on brand momentum and hiring velocity - a UPI scale play. "
             "Razorpay dominates B2B mindshare but lags on employer score, signalling "
             "rapid-scaling stress. Juspay is a quiet riser in news mentions."
         ),
@@ -54,8 +62,15 @@ SECTORS: dict[str, dict] = {
             "Fractal": "fractal-analytics",
             "LatentView": "latentview-analytics",
         },
+        "funding": {
+            "MathCo": {"last_round": "Series A", "amount_usd_m": 50, "year": 2022, "total_raised_usd_m": 50, "valuation_tier": "Growth"},
+            "Sigmoid": {"last_round": "Series B", "amount_usd_m": 12, "year": 2022, "total_raised_usd_m": 19, "valuation_tier": "Growth"},
+            "Tiger Analytics": {"last_round": "Private Equity", "amount_usd_m": 40, "year": 2021, "total_raised_usd_m": 40, "valuation_tier": "Growth"},
+            "Fractal": {"last_round": "Private Equity", "amount_usd_m": 360, "year": 2022, "total_raised_usd_m": 685, "valuation_tier": "Unicorn"},
+            "LatentView": {"last_round": "IPO", "amount_usd_m": 80, "year": 2021, "total_raised_usd_m": 80, "valuation_tier": "Public"},
+        },
         "insight": (
-            "Fractal dominates news coverage and hiring — a global expansion signal. "
+            "Fractal dominates news coverage and hiring - a global expansion signal. "
             "MathCo punches above its size on employer score. "
             "Tiger Analytics shows steady brand momentum."
         ),
@@ -76,8 +91,15 @@ SECTORS: dict[str, dict] = {
             "Ditto": "ditto-insurance",
             "INDmoney": "indmoney",
         },
+        "funding": {
+            "Smallcase": {"last_round": "Series C", "amount_usd_m": 40, "year": 2021, "total_raised_usd_m": 65, "valuation_tier": "Soonicorn"},
+            "Groww": {"last_round": "Series E", "amount_usd_m": 251, "year": 2021, "total_raised_usd_m": 393, "valuation_tier": "Unicorn"},
+            "Zerodha": {"last_round": "Bootstrapped", "amount_usd_m": 0, "year": 2024, "total_raised_usd_m": 0, "valuation_tier": "Bootstrapped"},
+            "Ditto": {"last_round": "Series A", "amount_usd_m": 4, "year": 2021, "total_raised_usd_m": 4, "valuation_tier": "Growth"},
+            "INDmoney": {"last_round": "Series D", "amount_usd_m": 86, "year": 2022, "total_raised_usd_m": 144, "valuation_tier": "Soonicorn"},
+        },
         "insight": (
-            "Groww leads on both brand momentum and hiring — mass-market retail "
+            "Groww leads on both brand momentum and hiring - mass-market retail "
             "investing tailwinds. Zerodha holds the highest app rating despite zero "
             "paid marketing."
         ),
@@ -95,8 +117,15 @@ SECTORS: dict[str, dict] = {
             "Porter": "porter-transport-solutions",
             "ElasticRun": "elasticrun",
         },
+        "funding": {
+            "Zetwerk": {"last_round": "Series F", "amount_usd_m": 120, "year": 2023, "total_raised_usd_m": 670, "valuation_tier": "Unicorn"},
+            "Ninjacart": {"last_round": "Series D", "amount_usd_m": 145, "year": 2021, "total_raised_usd_m": 368, "valuation_tier": "Unicorn"},
+            "Locus": {"last_round": "Series C", "amount_usd_m": 50, "year": 2021, "total_raised_usd_m": 80, "valuation_tier": "Soonicorn"},
+            "Porter": {"last_round": "Series E", "amount_usd_m": 100, "year": 2021, "total_raised_usd_m": 130, "valuation_tier": "Soonicorn"},
+            "ElasticRun": {"last_round": "Series E", "amount_usd_m": 330, "year": 2022, "total_raised_usd_m": 430, "valuation_tier": "Unicorn"},
+        },
         "insight": (
-            "Zetwerk is on a hiring blitz — manufacturing digitisation thesis playing "
+            "Zetwerk is on a hiring blitz - manufacturing digitisation thesis playing "
             "out. Porter leads on app ratings. Locus quietly tops employer scores."
         ),
     },
@@ -110,8 +139,15 @@ SECTORS: dict[str, dict] = {
             "Kroll": "kroll",
             "Analysys Mason": "analysys-mason",
         },
+        "funding": {
+            "Redseer": {"last_round": "Bootstrapped", "amount_usd_m": 0, "year": 2023, "total_raised_usd_m": 0, "valuation_tier": "Bootstrapped"},
+            "Praxis": {"last_round": "Bootstrapped", "amount_usd_m": 0, "year": 2023, "total_raised_usd_m": 0, "valuation_tier": "Bootstrapped"},
+            "Alvarez & Marsal": {"last_round": "Private", "amount_usd_m": 0, "year": 2024, "total_raised_usd_m": 0, "valuation_tier": "Private Enterprise"},
+            "Kroll": {"last_round": "Private Equity", "amount_usd_m": 0, "year": 2024, "total_raised_usd_m": 0, "valuation_tier": "Private Enterprise"},
+            "Analysys Mason": {"last_round": "Private", "amount_usd_m": 0, "year": 2024, "total_raised_usd_m": 0, "valuation_tier": "Private Enterprise"},
+        },
         "insight": (
-            "Redseer dominates brand search in India — strong content marketing "
+            "Redseer dominates brand search in India - strong content marketing "
             "flywheel. Alvarez and Marsal leads hiring. Kroll tops Glassdoor scores."
         ),
     },
