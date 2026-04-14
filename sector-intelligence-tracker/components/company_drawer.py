@@ -151,8 +151,11 @@ def render_company_drawer(company_name, sector_name, live_data):
             with st.spinner("Analyzing profile & live signals..."):
                 try:
                     groq_api_key = st.secrets.get("GROQ_API_KEY", "")
-                    if not groq_api_key or "gsk_" not in groq_api_key:
-                        st.error("Valid GROQ_API_KEY is missing from .streamlit/secrets.toml")
+                    if not groq_api_key:
+                        available_keys = list(st.secrets.keys())
+                        st.error(f"GROQ_API_KEY not found in st.secrets. Available keys: {available_keys}")
+                    elif "gsk_" not in groq_api_key:
+                        st.error("GROQ_API_KEY found but format is invalid (missing 'gsk_' prefix).")
                     else:
                         client = Groq(api_key=groq_api_key)
                         

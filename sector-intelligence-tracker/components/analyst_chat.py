@@ -77,8 +77,12 @@ Question: {question}"""
         with st.sidebar.spinner("Thinking..."):
             try:
                 groq_api_key = st.secrets.get("GROQ_API_KEY", "")
-                if not groq_api_key or "gsk_" not in groq_api_key:
-                    st.sidebar.error("Valid GROQ_API_KEY is missing from .streamlit/secrets.toml")
+                if not groq_api_key:
+                    available_keys = list(st.secrets.keys())
+                    st.sidebar.error(f"GROQ_API_KEY not found in st.secrets. Available: {available_keys}")
+                    return
+                elif "gsk_" not in groq_api_key:
+                    st.sidebar.error("GROQ_API_KEY format is invalid.")
                     return
                 client = Groq(api_key=groq_api_key)
                 msg = client.chat.completions.create(
