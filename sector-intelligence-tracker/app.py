@@ -401,11 +401,17 @@ else:
         st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
         st.sidebar.markdown("---")
         st.sidebar.markdown("**Compare mode**")
+        enable_compare = False
+        company_a = None
+        company_b = None
+        
         enable_compare = st.sidebar.toggle("Enable comparison", value=False)
         if enable_compare:
             if view not in ["Report History", "About Product"]:
-                from data.sectors import SECTORS
-                companies_list = SECTORS[selected_sector]["companies"]
+                from data.sectors import SECTORS, list_sector_keys
+                # Safe access to selected sector before rendering
+                curr_sector = st.session_state.get("sector_selector", list_sector_keys()[0])
+                companies_list = SECTORS.get(curr_sector, SECTORS[list_sector_keys()[0]])["companies"]
                 company_a = st.sidebar.selectbox("Company A", companies_list, key="cmp_a")
                 company_b = st.sidebar.selectbox("Company B", 
                                 [c for c in companies_list if c != company_a], key="cmp_b")
