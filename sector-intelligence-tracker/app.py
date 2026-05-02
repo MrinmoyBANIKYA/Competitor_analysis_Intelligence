@@ -297,20 +297,7 @@ h1, h2, h3, .page-header {{
     100% {{ background-position: -200% 0; }}
 }}
 
-/* HEADER ACTION BUTTON POSITIONING */
-.header-action-container {{
-    position: fixed;
-    top: 12px;
-    right: 80px;
-    z-index: 10001;
-    display: {"block" if st.session_state.get("logged_in") else "none"};
-}}
 
-.header-action-container button {{
-    height: 36px !important;
-    padding: 0 1.25rem !important;
-    font-size: 0.85rem !important;
-}}
 
 /* METRICS GRID */
 .metrics-grid {{
@@ -742,35 +729,13 @@ else:
 
     def render_nixtio_metrics_grid(metrics_list):
         """
-        Renders a group of premium NixTio glassmorphism metric cards in a CSS grid.
+        Renders premium glassmorphism metric cards using native Streamlit metrics.
+        CSS already handles the premium styling.
         """
-        html = '<div class="metrics-grid">'
-        for m in metrics_list:
-            delta = m.get("delta")
-            delta_color = m.get("delta_color", "normal")
-            color = "#3FB950" if delta_color == "normal" and delta and "↑" in delta else ("#F85149" if delta else "transparent")
-            delta_html = f'<div style="color: {color}; font-size: 13px; font-weight: 600; margin-top: 4px;">{delta}</div>' if delta else ""
-            
-            html += f"""
-            <div style="
-                background: rgba(255, 255, 255, 0.03);
-                border: 1px solid rgba(255, 255, 255, 0.08);
-                border-radius: 16px;
-                padding: 24px;
-                backdrop-filter: blur(12px);
-                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                transition: transform 0.2s ease;
-            ">
-                <div style="color: #8B949E; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 8px;">{m['label']}</div>
-                <div style="color: white; font-size: 38px; font-weight: 800; font-family: 'Manrope', sans-serif; line-height: 1.1;">{m['value']}</div>
-                {delta_html}
-            </div>
-            """
-        html += '</div>'
-        st.markdown(html, unsafe_allow_html=True)
+        cols = st.columns(len(metrics_list))
+        for i, m in enumerate(metrics_list):
+            with cols[i]:
+                st.metric(label=m['label'], value=m['value'], delta=m.get('delta'))
 
     def render_skeleton_metrics():
         st.markdown(f"""
@@ -825,7 +790,9 @@ else:
         sys_view = st.radio("System", system_menu, label_visibility="collapsed")
 
         # Map sub-radios to global view
-        if intel_menu == "Dashboard": view = "Overview"
+        if "force_view" in st.session_state:
+            view = st.session_state.pop("force_view")
+        elif intel_menu == "Dashboard": view = "Overview"
         elif intel_menu == "AI Analyst": view = "AI Analyst"
         elif intel_menu == "Competitor Intel": view = "Brand Dashboard"
         elif report_menu == "Generate Report": view = "Generate Report"
@@ -833,24 +800,22 @@ else:
         else: view = sys_view
 
         # 5. Bottom User Profile
+        st.markdown("---")
         st.markdown("""
-        <div style="position: fixed; bottom: 0; left: 0; width: 280px; padding: 20px; background: #161B22; border-top: 1px solid #30363D;">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+        <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
                 <div style="width: 32px; height: 32px; border-radius: 50%; background: #378ADD; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white;">M</div>
                 <div>
                     <div style="font-size: 14px; font-weight: 600; color: white;">Mrinmoy Banikya</div>
-                    <div style="font-size: 10px; color: #3FB950; font-weight: bold; background: rgba(63,185,80,0.1); padding: 2px 6px; border-radius: 4px; display: inline-block;">SUPER ADMIN</div>
+                    <div style="font-size: 10px; color: #3FB950; font-weight: bold;">SUPER ADMIN</div>
                 </div>
             </div>
         </div>
         """, unsafe_allow_html=True)
         
-        # Logout inside profile area
-        st.markdown("<div style='position: fixed; bottom: 15px; left: 215px; z-index: 10001;'>", unsafe_allow_html=True)
-        if st.button("🚪", key="logout_btn_sidebar", help="Logout Session"):
+        if st.button("Logout Dashboard", key="logout_btn_sidebar", use_container_width=True):
             st.session_state.logged_in = False
             st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
 
     # Demo Banner
     if st.session_state.demo_mode:
@@ -871,13 +836,7 @@ else:
     # Onboarding Modal
     render_onboarding()
             
-    # Header Action Button (positioned via CSS)
-    st.markdown('<div class="header-action-container">', unsafe_allow_html=True)
-    if st.button("Generate Report", key="header_gen_report", type="primary"):
-        # This button is visually in the header, but defined here for Streamlit logic
-        # We can't easily change the radio value from here without a callback or rerun
-        pass 
-    st.markdown('</div>', unsafe_allow_html=True)
+
 
     # Top Bar (Header) - Original Streamlit Columns (Hide or repurpose)
     top1, top2, top3 = st.columns([4, 3, 3])
@@ -892,16 +851,24 @@ else:
             selected_sector = "None"
 
     with top3:
-        # Admin Profile Mrinmoy Banikya
-        st.markdown("""
-        <div style='display:flex; justify-content:flex-end; align-items:center; height:100%; gap: 12px;'>
-            <div style='text-align:right'>
-                <div style='font-family:Manrope; font-weight:700; font-size:0.95rem; color:#FFF'>Mrinmoy Banikya</div>
-                <div style='font-family:Inter; font-size:0.7rem; color:#D4E157; font-weight:600; text-transform:uppercase; letter-spacing:0.05em'>Super Admin</div>
+        col_gen, col_prof = st.columns([1, 1.2])
+        with col_gen:
+            if st.button("Generate Report", key="top_gen_report", type="primary", use_container_width=True):
+                # Since we can't easily switch the radio, we just set a flag
+                st.session_state["force_view"] = "Generate Report"
+                st.rerun()
+
+        with col_prof:
+            # Admin Profile Mrinmoy Banikya
+            st.markdown("""
+            <div style='display:flex; justify-content:flex-end; align-items:center; height:100%; gap: 12px;'>
+                <div style='text-align:right'>
+                    <div style='font-family:Manrope; font-weight:700; font-size:0.9rem; color:#FFF; line-height:1.1;'>Mrinmoy Banikya</div>
+                    <div style='font-family:Inter; font-size:0.65rem; color:#D4E157; font-weight:600; text-transform:uppercase; letter-spacing:0.05em'>Super Admin</div>
+                </div>
+                <div style='width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg, #B388FF, #7E57C2);display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:bold;font-size:1.1rem;box-shadow: 0 4px 10px rgba(126,87,194,0.4)'>M</div>
             </div>
-            <div style='width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg, #B388FF, #7E57C2);display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:bold;font-size:1.2rem;box-shadow: 0 4px 10px rgba(126,87,194,0.4)'>M</div>
-        </div>
-        """, unsafe_allow_html=True)
+            """, unsafe_allow_html=True)
 
     st.markdown("<div style='height: 1.5rem'></div>", unsafe_allow_html=True)
 
@@ -1018,8 +985,8 @@ else:
         risk_emp = employer_data.get(risk_co, 0.0)
 
         line1 = f"{brand_lead} is the dominant brand in {selected_sector} with a Google Trends index of {trends_last:.0f}/100 — {pct_above_avg:.0f}% above sector average."
-        line2 = f"{top_hire_co} is in aggressive hiring mode with {top_hire_n} open roles ({pct_diff:+.0f}% vs sector avg) — watch for a product launch signal."
-        line3 = f"{risk_co} shows scaling stress: {risk_jobs} open roles but only {risk_emp:.1f}/5 employer rating — attrition risk is elevated."
+        line2 = f"{top_hire_co} is in aggressive hiring mode with {format_large_number(top_hire_n)} open roles ({pct_diff:+.0f}% vs sector avg) — watch for a product launch signal."
+        line3 = f"{risk_co} shows scaling stress: {format_large_number(risk_jobs)} open roles but only {risk_emp:.1f}/5 employer rating — attrition risk is elevated."
 
         momentum_score = st.session_state.momentum_score
         
