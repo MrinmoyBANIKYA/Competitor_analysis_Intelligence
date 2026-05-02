@@ -29,17 +29,31 @@ import json
 # ---------------------------------------------------------------------------
 
 st.set_page_config(
-    page_title="Sector Intelligence Tracker",
+    page_title="NixTio — Sector Intelligence",
     page_icon="📡",
     layout="wide",
     initial_sidebar_state="expanded",
 )
 
-# Initialize Session State Variables
+st.markdown("""
+    <head>
+        <title>NixTio — Sector Intelligence</title>
+        <meta name="description" content="Premium real-time sector intelligence and competitive analysis platform for India's sharpest operators.">
+    </head>
+""", unsafe_allow_html=True)
+
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 if "history" not in st.session_state:
     st.session_state.history = []
+if "demo_mode" not in st.session_state:
+    st.session_state.demo_mode = False
+if "onboarded" not in st.session_state:
+    st.session_state.onboarded = False
+if "sector_selector" not in st.session_state:
+    st.session_state.sector_selector = list_sector_keys()[0]
+if "last_sector" not in st.session_state:
+    st.session_state.last_sector = st.session_state.sector_selector
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -643,8 +657,70 @@ else:
         )
         return fig
 
+    # ---------------------------------------------------------------------------
+    # Micro-interactions & Helpers
+    # ---------------------------------------------------------------------------
+
+    def render_typing_indicator():
+        st.markdown("""
+        <div style="display:flex; gap:4px; padding:10px; align-items:center;">
+            <div class="typing-dot" style="width:6px; height:6px; background:#8B949E; border-radius:50%; animation: blink 1.4s infinite 0.2s;"></div>
+            <div class="typing-dot" style="width:6px; height:6px; background:#8B949E; border-radius:50%; animation: blink 1.4s infinite 0.4s;"></div>
+            <div class="typing-dot" style="width:6px; height:6px; background:#8B949E; border-radius:50%; animation: blink 1.4s infinite 0.6s;"></div>
+        </div>
+        <style>
+        @keyframes blink { 0% { opacity: 0.2; } 20% { opacity: 1; } 100% { opacity: 0.2; } }
+        </style>
+        """, unsafe_allow_html=True)
+
+    def render_onboarding():
+        if not st.session_state.onboarded:
+            st.markdown("""
+            <div style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(13,17,23,0.95); z-index:99999; display:flex; align-items:center; justify-content:center; backdrop-filter:blur(8px);">
+                <div style="background:#161B22; border:1px solid #30363D; border-radius:24px; padding:48px; max-width:600px; text-align:center; box-shadow:0 24px 64px rgba(0,0,0,0.5);">
+                    <div style="width:64px; height:64px; background:#378ADD; border-radius:50%; margin:0 auto 24px auto; display:flex; align-items:center; justify-content:center; font-size:24px; color:white; font-weight:bold;">N•</div>
+                    <h1 style="color:white; font-family:Manrope; margin-bottom:16px;">Welcome to NixTio</h1>
+                    <p style="color:#8B949E; margin-bottom:32px;">Real-time sector intelligence at your fingertips. Let's get you set up.</p>
+                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:40px;">
+                        <div style="padding:16px; background:rgba(55,138,221,0.1); border-radius:12px; border:1px solid #378ADD;">
+                            <div style="font-size:12px; color:#378ADD; font-weight:bold; margin-bottom:4px;">STEP 1</div>
+                            <div style="color:white; font-size:14px;">Sector</div>
+                        </div>
+                        <div style="padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid #30363D;">
+                            <div style="font-size:12px; color:#8B949E; font-weight:bold; margin-bottom:4px;">STEP 2</div>
+                            <div style="color:#C9D1D9; font-size:14px;">Analysis</div>
+                        </div>
+                        <div style="padding:16px; background:rgba(255,255,255,0.03); border-radius:12px; border:1px solid #30363D;">
+                            <div style="font-size:12px; color:#8B949E; font-weight:bold; margin-bottom:4px;">STEP 3</div>
+                            <div style="color:#C9D1D9; font-size:14px;">Go Live</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button("Start Setup", key="onboard_start", use_container_width=True, type="primary"):
+                st.session_state.onboarded = True
+                st.rerun()
+
     @st.cache_data(ttl=3600, show_spinner=False)
-    def cached_fetch_sector_data(sector_key: str, news_api_key: str):
+    def cached_fetch_sector_data(sector_key: str, news_api_key: str, demo_mode: bool = False):
+        if demo_mode:
+            from data.fallback_data import (
+                get_fallback_trends, get_fallback_playstore, get_fallback_linkedin, 
+                get_fallback_ambitionbox, get_fallback_news, get_fallback_sentiment
+            )
+            # Use mock data specifically for demo
+            cos = SECTORS.get(sector_key, {}).get("companies", [])
+            results = {
+                "trends": {"data": get_fallback_trends(cos), "status": "ok"},
+                "ratings": {"data": get_fallback_playstore(cos), "status": "ok"},
+                "jobs": {"data": get_fallback_linkedin(cos), "status": "ok"},
+                "employer": {"data": get_fallback_ambitionbox(cos), "status": "ok"},
+                "news": {"data": get_fallback_news(cos), "status": "ok"},
+                "sentiment": {"data": get_fallback_sentiment(cos), "status": "ok"}
+            }
+            return SectorData(results)
+            
         fetcher = DataFetcher()
         sector_config = SECTORS[sector_key]
         companies = sector_config["companies"]
@@ -719,46 +795,94 @@ else:
 
     # Navigation Sidebar
     with st.sidebar:
-        st.sidebar.markdown('<p class="sidebar-section-label">Market Intelligence</p>', unsafe_allow_html=True)
-        
-        menu_options = [
-            "Overview", 
-            "Brand Dashboard", 
-            "Talent Pool & CX", 
-            "AI Analyst",
-            "Generate Report", 
-            "Report History", 
-            "About Product"
-        ]
-        if st.secrets.get("IS_ADMIN", False):
-            menu_options.append("Settings ⚙")
-            
-        view = st.radio("MENU", menu_options, label_visibility="collapsed")
-        
-        st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
-        st.sidebar.markdown("---")
-        st.sidebar.markdown("**Compare mode**")
-        enable_compare = False
-        company_a = None
-        company_b = None
-        
-        enable_compare = st.sidebar.toggle("Enable comparison", value=False)
-        if enable_compare:
-            if view not in ["Report History", "About Product"]:
-                from data.sectors import SECTORS, list_sector_keys
-                # Safe access to selected sector before rendering
-                curr_sector = st.session_state.get("sector_selector", list_sector_keys()[0])
-                companies_list = SECTORS.get(curr_sector, SECTORS[list_sector_keys()[0]])["companies"]
-                company_a = st.sidebar.selectbox("Company A", companies_list, key="cmp_a")
-                company_b = st.sidebar.selectbox("Company B", 
-                                [c for c in companies_list if c != company_a], key="cmp_b")
-            else:
-                st.sidebar.warning("Select a dashboard view to compare.")
+        # 1. Branding
+        st.markdown("""
+        <div style="padding: 1rem 0; display: flex; align-items: center; gap: 12px; margin-bottom: 2rem;">
+            <div style="width: 36px; height: 36px; background: #378ADD; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; color: white; font-size: 18px;">N•</div>
+            <div style="font-family: 'Manrope', sans-serif; font-size: 22px; font-weight: 800; color: white; letter-spacing: -0.5px;">NixTio</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        st.sidebar.markdown("---")
-        if st.sidebar.button("Logout Session", key="logout_sidebar"):
+        # 2. Sector Selector at Top
+        st.markdown("<p style='font-size: 10px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;'>ACTIVE SECTOR</p>", unsafe_allow_html=True)
+        def get_sector_health_dot(s_key):
+             # For now, simulate health dot
+             return "🟢" if s_key == "Fintech Payments" else "🟡"
+        
+        sector_options = {f"{get_sector_health_dot(k)} {k}": k for k in list_sector_keys()}
+        selected_sector_display = st.selectbox("Sector", options=list(sector_options.keys()), label_visibility="collapsed", key="sector_selector_sidebar")
+        selected_sector = sector_options[selected_sector_display]
+        st.session_state.sector_selector = selected_sector
+        
+        st.markdown("<div style='height: 1.5rem'></div>", unsafe_allow_html=True)
+
+        # 3. Demo Mode Toggle
+        with st.container(border=True):
+            st.session_state.demo_mode = st.toggle("Demo Mode", value=st.session_state.demo_mode, help="Load mock data for presentation")
+        
+        st.markdown("<div style='height: 1.5rem'></div>", unsafe_allow_html=True)
+
+        # 4. Navigation Sections
+        st.markdown("<p style='font-size: 10px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;'>INTELLIGENCE</p>", unsafe_allow_html=True)
+        intel_menu = st.radio("Intel", ["Dashboard", "AI Analyst", "Competitor Intel"], label_visibility="collapsed")
+        
+        st.markdown("<div style='height: 1rem'></div>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 10px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;'>REPORTS</p>", unsafe_allow_html=True)
+        report_menu = st.radio("Reports", ["Generate Report", "Report History"], label_visibility="collapsed")
+        
+        st.markdown("<div style='height: 1rem'></div>", unsafe_allow_html=True)
+        st.markdown("<p style='font-size: 10px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;'>SYSTEM</p>", unsafe_allow_html=True)
+        system_menu = ["About Product"]
+        if st.secrets.get("IS_ADMIN", False):
+            system_menu.append("Settings ⚙")
+        sys_view = st.radio("System", system_menu, label_visibility="collapsed")
+
+        # Map sub-radios to global view
+        if intel_menu == "Dashboard": view = "Overview"
+        elif intel_menu == "AI Analyst": view = "AI Analyst"
+        elif intel_menu == "Competitor Intel": view = "Brand Dashboard"
+        elif report_menu == "Generate Report": view = "Generate Report"
+        elif report_menu == "Report History": view = "Report History"
+        else: view = sys_view
+
+        # 5. Bottom User Profile
+        st.markdown("""
+        <div style="position: fixed; bottom: 0; left: 0; width: 280px; padding: 20px; background: #161B22; border-top: 1px solid #30363D;">
+            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: #378ADD; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white;">M</div>
+                <div>
+                    <div style="font-size: 14px; font-weight: 600; color: white;">Mrinmoy Banikya</div>
+                    <div style="font-size: 10px; color: #3FB950; font-weight: bold; background: rgba(63,185,80,0.1); padding: 2px 6px; border-radius: 4px; display: inline-block;">SUPER ADMIN</div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Logout inside profile area
+        st.markdown("<div style='position: fixed; bottom: 15px; left: 215px; z-index: 10001;'>", unsafe_allow_html=True)
+        if st.button("🚪", key="logout_btn_sidebar", help="Logout Session"):
             st.session_state.logged_in = False
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+    # Demo Banner
+    if st.session_state.demo_mode:
+        st.markdown("""
+        <div style="background: rgba(210,153,34,0.1); border: 1px solid #D29922; padding: 8px 24px; text-align: center; font-size: 12px; color: #D29922; margin-bottom: 16px; border-radius: 8px;">
+            <b>DEMO MODE ACTIVE:</b> You're viewing pre-populated data. Configure API keys in Settings to go live.
+        </div>
+        """, unsafe_allow_html=True)
+
+    # Sector Scanning Micro-interaction
+    if st.session_state.last_sector != selected_sector:
+        with st.status(f"Scanning {selected_sector} ecosystem...", expanded=True) as status:
+            time.sleep(1.2)
+            status.update(label="Sector Map Loaded", state="complete", expanded=False)
+        st.session_state.last_sector = selected_sector
+        st.rerun()
+
+    # Onboarding Modal
+    render_onboarding()
             
     # Header Action Button (positioned via CSS)
     st.markdown('<div class="header-action-container">', unsafe_allow_html=True)
@@ -808,7 +932,7 @@ else:
             render_skeleton_metrics()
             
             try:
-                sector_data = cached_fetch_sector_data(selected_sector, NEWS_API_KEY)
+                sector_data = cached_fetch_sector_data(selected_sector, NEWS_API_KEY, demo_mode=st.session_state.demo_mode)
                 
                 # Unpack for easier access in the app
                 ratings_data = sector_data.ratings
@@ -1614,6 +1738,7 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                 generate = st.button("Generate Sector Intelligence Analysis", type="primary", use_container_width=True)
             
             if generate:
+                render_typing_indicator()
                 with st.spinner("Llama-3.3-70b-versatile is processing data..."):
                     analysis = generate_sector_analysis(selected_sector, sector_data)
                     if "error" in analysis:
