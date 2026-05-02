@@ -22,6 +22,8 @@ from data.scrapers import (
 from data.sectors import SECTORS, list_sector_keys
 from data.sector_meta import SECTOR_META
 from utils.helpers import format_large_number, timestamp_label
+from utils.ai_analyst import generate_sector_analysis, stream_analyst_response
+import json
 
 # ---------------------------------------------------------------------------
 # Page configuration
@@ -627,14 +629,19 @@ else:
         </div>
         """, unsafe_allow_html=True)
         
-        view = st.radio("MENU", [
+        menu_options = [
             "Overview", 
             "Brand Dashboard", 
             "Talent Pool & CX", 
+            "AI Analyst",
             "Generate Report", 
             "Report History", 
             "About Product"
-        ])
+        ]
+        if st.secrets.get("IS_ADMIN", False):
+            menu_options.append("Settings ⚙")
+            
+        view = st.radio("MENU", menu_options)
         
         st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
         st.sidebar.markdown("---")
@@ -1395,7 +1402,115 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
             <div style='display:inline-block; border-top: 1px solid #2A1A4A; padding-top:1.5rem'>
                 <span style='color:#8E8D92; font-size:0.85rem'>Engineered & Managed by</span><br>
                 <strong style='color:#FFF; font-size:1.1rem'>Mrinmoy Banikya</strong>
-            </div>
         </div>
         """, unsafe_allow_html=True)
+
+    elif view == "AI Analyst":
+        st.markdown("<p class='page-header'>AI Strategy Analyst</p>", unsafe_allow_html=True)
+        
+        groq_key = st.secrets.get("GROQ_API_KEY")
+        if not groq_key:
+            st.markdown("""
+            <div style='background: rgba(255,183,77,0.1); border: 1px solid #FFB74D; border-radius: 12px; padding: 2rem; text-align: center;'>
+                <p style='color: #FFB74D; font-size: 1.1rem; font-weight: 600;'>Configure your Groq API key in Settings to unlock AI analysis</p>
+                <p style='color: #8E8D92; font-size: 0.9rem;'>The AI Analyst requires a valid Groq API key to process sector intelligence.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Sector data dict for the analyst
+            sector_data = {
+                "metrics": SECTOR_META.get(selected_sector, {}),
+                "companies": companies,
+                "news": news_data,
+                "jobs": jobs_data,
+                "ratings": ratings_data
+            }
+            
+            col_an_1, col_an_2 = st.columns([2, 1])
+            with col_an_1:
+                st.markdown(f"**Target Sector:** {selected_sector}")
+                st.markdown(f"**Data Points:** {len(companies)} companies, {sum(news_data.values())} news items, {sum(jobs_data.values())} open roles.")
+            with col_an_2:
+                generate = st.button("Generate Sector Intelligence Analysis", type="primary", use_container_width=True)
+            
+            if generate:
+                with st.spinner("Llama-3.3-70b-versatile is processing data..."):
+                    analysis = generate_sector_analysis(selected_sector, sector_data)
+                    if "error" in analysis:
+                        st.error(analysis["error"])
+                    else:
+                        st.session_state["current_analysis"] = analysis
+            
+            if "current_analysis" in st.session_state:
+                analysis = st.session_state["current_analysis"]
+                
+                # CSS for analysis cards
+                st.markdown("""
+                <style>
+                .analysis-card { background: #1A1525; border-left: 4px solid #378ADD; padding: 15px; border-radius: 8px; margin-bottom: 10px; }
+                .analysis-title { color: #378ADD; font-weight: bold; margin-bottom: 5px; font-size: 0.9rem; text-transform: uppercase; }
+                .analysis-content { color: #EEEDEB; font-size: 0.95rem; line-height: 1.4; }
+                </style>
+                """, unsafe_allow_html=True)
+
+                with st.expander("📊 Market Momentum", expanded=True):
+                    st.markdown(f"<div class='analysis-card'><div class='analysis-content'>{analysis.get('momentum', 'N/A')}</div></div>", unsafe_allow_html=True)
+                with st.expander("⚔️ Competitive Positioning"):
+                    st.markdown(f"<div class='analysis-card'><div class='analysis-content'>{analysis.get('competitive_position', 'N/A')}</div></div>", unsafe_allow_html=True)
+                with st.expander("🧬 Talent & Roadmap Signals"):
+                    st.markdown(f"<div class='analysis-card'><div class='analysis-content'>{analysis.get('talent_signal', 'N/A')}</div></div>", unsafe_allow_html=True)
+                with st.expander("⚠️ Risk Assessment"):
+                    st.markdown(f"<div class='analysis-card'><div class='analysis-content'>{analysis.get('risk_factors', 'N/A')}</div></div>", unsafe_allow_html=True)
+                with st.expander("💡 Strategic Recommendations"):
+                    st.markdown(f"<div class='analysis-card'><div class='analysis-content'>{analysis.get('recommendations', 'N/A')}</div></div>", unsafe_allow_html=True)
+                
+                st.markdown("---")
+                st.markdown("### Ask follow-up questions")
+                
+                if "ai_chat_history" not in st.session_state:
+                    st.session_state.ai_chat_history = []
+                
+                for chat in st.session_state.ai_chat_history:
+                    with st.chat_message(chat["role"]):
+                        st.markdown(chat["content"])
+                
+                if chat_prompt := st.chat_input("Ask the analyst about this sector..."):
+                    st.session_state.ai_chat_history.append({"role": "user", "content": chat_prompt})
+                    with st.chat_message("user"):
+                        st.markdown(chat_prompt)
+                    
+                    with st.chat_message("assistant"):
+                        context = f"Sector: {selected_sector}\nAnalysis Overview: {analysis.get('momentum', '')} {analysis.get('recommendations', '')}"
+                        response = st.write_stream(stream_analyst_response(chat_prompt, context))
+                        st.session_state.ai_chat_history.append({"role": "assistant", "content": response})
+
+    elif view == "Settings ⚙":
+        st.markdown("<p class='page-header'>System Settings</p>", unsafe_allow_html=True)
+        
+        st.markdown("### API Configuration")
+        st.info("Settings are saved to .streamlit/secrets.toml")
+        
+        with st.form("settings_form"):
+            new_groq_key = st.text_input("Groq API Key", value=st.secrets.get("GROQ_API_KEY", ""), type="password")
+            new_news_key = st.text_input("News API Key", value=st.secrets.get("NEWS_API_KEY", ""), type="password")
+            
+            save = st.form_submit_button("Save Configuration", type="primary")
+            
+            if save:
+                try:
+                    secrets_path = ".streamlit/secrets.toml"
+                    # Preserve existing structure
+                    content = f'NEWS_API_KEY = "{new_news_key}"\n'
+                    content += f'GROQ_API_KEY = "{new_groq_key}"\n'
+                    content += f'IS_ADMIN = true\n\n'
+                    content += '[credentials]\n'
+                    content += f'email = "{st.secrets["credentials"]["email"]}"\n'
+                    content += f'password = "{st.secrets["credentials"]["password"]}"\n'
+                    
+                    with open(secrets_path, "w") as f:
+                        f.write(content)
+                    st.success("Settings saved successfully! Streamlit will reload automatically.")
+                except Exception as e:
+                    st.error(f"Failed to save settings: {e}")
+
 

@@ -86,7 +86,7 @@ Question: {question}"""
                     return
                 client = Groq(api_key=groq_api_key)
                 msg = client.chat.completions.create(
-                    model="llama3-70b-8192",
+                    model="llama-3.3-70b-versatile",
                     max_tokens=400,
                     messages=[
                         {"role": "system", "content": system_prompt},
