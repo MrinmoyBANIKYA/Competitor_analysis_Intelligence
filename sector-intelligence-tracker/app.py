@@ -10,6 +10,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import datetime
+import time
 
 from data.scrapers import (
     DataFetcher,
@@ -21,6 +22,10 @@ from utils.helpers import (
     format_large_number, 
     timestamp_label, 
     apply_nixtio_theme
+)
+from utils.ai_analyst import (
+    generate_sector_analysis,
+    stream_analyst_response
 )
 import json
 
@@ -626,34 +631,6 @@ if not st.session_state.logged_in:
 else:
     # ---------------- MAIN APPLICATION ----------------
     
-    # Cached data loaders
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def cached_playstore_ratings(sector_key: str) -> dict:
-        return get_playstore_ratings(SECTORS[sector_key].get("app_ids", {}))
-
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def cached_google_trends(sector_key: str) -> pd.DataFrame:
-        companies = SECTORS[sector_key]["companies"]
-        return get_google_trends(companies[:5], timeframe="today 12-m")
-
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def cached_news_mentions(sector_key: str, api_key: str) -> dict:
-        if not api_key:
-            return {c: 0 for c in SECTORS[sector_key]["companies"]}
-        return get_news_mentions(SECTORS[sector_key]["companies"], api_key)
-
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def cached_linkedin_jobs(sector_key: str) -> dict:
-        return get_linkedin_job_count(SECTORS[sector_key].get("linkedin_slugs", {}))
-
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def cached_ambitionbox(sector_key: str) -> dict:
-        return get_ambitionbox_rating(SECTORS[sector_key]["companies"])
-
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def cached_review_sentiment(sector_key: str) -> dict:
-        return get_review_sentiment(SECTORS[sector_key].get("app_ids", {}))
-
     def apply_layout(fig, height=350):
         fig.update_layout(
             title=None,
@@ -995,6 +972,10 @@ else:
     # ---------------------------------------------------------------------------
     # Routing Views
     # ---------------------------------------------------------------------------
+
+    enable_compare = st.session_state.get("enable_compare", False)
+    company_a = st.session_state.get("company_a", None)
+    company_b = st.session_state.get("company_b", None)
 
     if enable_compare and view not in ["Report History", "About Product"]:
         if company_a and company_b:
@@ -1409,7 +1390,7 @@ else:
                 total_sector_raised_bn = total_sector_raised_m / 1000.0
                 
                 with st.container(border=True):
-                    render_nixtio_metric("Total Capital Raised", f"${total_sector_raised_bn:.2f}B", "Sector Total")
+                    render_nixtio_metrics_grid([{"label": "Total Capital Raised", "value": f"${total_sector_raised_bn:.2f}B", "delta": "Sector Total"}])
                     
                     fdf_sorted = fdf.sort_values("Total Raised ($M)", ascending=True)
                     tier_colors = {
