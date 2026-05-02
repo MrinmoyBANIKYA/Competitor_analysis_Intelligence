@@ -581,7 +581,19 @@ if not st.session_state.logged_in:
         """, unsafe_allow_html=True)
 
     with col_right:
-        st.markdown('<div class="right-panel">', unsafe_allow_html=True)
+        st.markdown("""
+        <style>
+        [data-testid="column"]:nth-of-type(2) {
+            background-color: #0D1117;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            border-left: 1px solid #21262D;
+            padding: 0 4vw !important;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
         st.markdown('<h2>Sign in to NixTio</h2>', unsafe_allow_html=True)
         
@@ -609,10 +621,8 @@ if not st.session_state.logged_in:
 
         st.markdown("""
         <p class="early-access">Don't have an account? <a href="#">Request early access →</a></p>
+        </div>
         """, unsafe_allow_html=True)
-        st.markdown('</div></div>', unsafe_allow_html=True)
-
-        
 else:
     # ---------------- MAIN APPLICATION ----------------
     
