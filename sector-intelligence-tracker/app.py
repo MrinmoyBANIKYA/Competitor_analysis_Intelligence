@@ -21,8 +21,11 @@ from data.scrapers import (
 )
 from data.sectors import SECTORS, list_sector_keys
 from data.sector_meta import SECTOR_META
-from utils.helpers import format_large_number, timestamp_label
-from utils.ai_analyst import generate_sector_analysis, stream_analyst_response
+from utils.helpers import (
+    format_large_number, 
+    timestamp_label, 
+    apply_nixtio_theme
+)
 import json
 
 # ---------------------------------------------------------------------------
@@ -292,6 +295,14 @@ h1, h2, h3, .page-header {{
     height: 36px !important;
     padding: 0 1.25rem !important;
     font-size: 0.85rem !important;
+}}
+
+/* METRICS GRID */
+.metrics-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
 }}
 </style>
 
@@ -639,6 +650,45 @@ else:
     def color_map_for(companies):
         return {c: CHART_COLORS[i % len(CHART_COLORS)] for i, c in enumerate(companies)}
 
+    def render_nixtio_metrics_grid(metrics_list):
+        """
+        Renders a group of premium NixTio glassmorphism metric cards in a CSS grid.
+        """
+        html = '<div class="metrics-grid">'
+        for m in metrics_list:
+            delta = m.get("delta")
+            delta_color = m.get("delta_color", "normal")
+            color = "#3FB950" if delta_color == "normal" and delta and "↑" in delta else ("#F85149" if delta else "transparent")
+            delta_html = f'<div style="color: {color}; font-size: 13px; font-weight: 600; margin-top: 4px;">{delta}</div>' if delta else ""
+            
+            html += f"""
+            <div style="
+                background: rgba(255, 255, 255, 0.03);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                border-radius: 16px;
+                padding: 24px;
+                backdrop-filter: blur(12px);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                transition: transform 0.2s ease;
+            ">
+                <div style="color: #8B949E; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 8px;">{m['label']}</div>
+                <div style="color: white; font-size: 38px; font-weight: 800; font-family: 'Manrope', sans-serif; line-height: 1.1;">{m['value']}</div>
+                {delta_html}
+            </div>
+            """
+        html += '</div>'
+        st.markdown(html, unsafe_allow_html=True)
+
+    def render_skeleton_metrics():
+        st.markdown(f"""
+        <div class="metrics-grid">
+            {'<div class="nixtio-skeleton" style="height: 140px; width: 100%;"></div>' * 4}
+        </div>
+        """, unsafe_allow_html=True)
+
 
     # Navigation Sidebar
     with st.sidebar:
@@ -726,13 +776,29 @@ else:
         companies = sector_config["companies"]
         cmap = color_map_for(companies)
 
-        with st.spinner("Syncing intelligence data..."):
+        with st.status("Syncing intelligence data...", expanded=True) as status:
+            st.write("Initializing scrapers...")
+            render_skeleton_metrics()
+            
+            st.write("Fetching Play Store ratings...")
             ratings_data = cached_playstore_ratings(selected_sector)
+            
+            st.write("Processing Google Trends...")
             trends_df    = cached_google_trends(selected_sector)
+            
+            st.write("Analyzing News mentions...")
             news_data    = cached_news_mentions(selected_sector, NEWS_API_KEY)
+            
+            st.write("Scanning LinkedIn job boards...")
             jobs_data    = cached_linkedin_jobs(selected_sector)
+            
+            st.write("Aggregating Employer reviews...")
             employer_data = cached_ambitionbox(selected_sector)
+            
+            st.write("Evaluating Customer sentiment...")
             sentiment_data = cached_review_sentiment(selected_sector)
+            
+            status.update(label="Intelligence Sync Complete", state="complete", expanded=False)
 
         with st.sidebar:
             from components.analyst_chat import render_analyst_sidebar
@@ -793,34 +859,94 @@ else:
         line2 = f"{top_hire_co} is in aggressive hiring mode with {top_hire_n} open roles ({pct_diff:+.0f}% vs sector avg) — watch for a product launch signal."
         line3 = f"{risk_co} shows scaling stress: {risk_jobs} open roles but only {risk_emp:.1f}/5 employer rating — attrition risk is elevated."
 
-        st.markdown(f"""
-        <div style="font-size: 10px; color: #378ADD; font-weight: bold; letter-spacing: 1px; margin-bottom: 8px;">EXECUTIVE SUMMARY</div>
-        <div style="background: #0D1117; border: 1px solid #21262D; border-radius: 12px; padding: 16px 20px; color: #B3D4F5; font-size: 13px; display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.5rem;">
-            <div style="background: rgba(255,255,255,0.03); border-radius: 20px; padding: 10px 16px;"><span style='color: #008080; margin-right: 8px; font-size:16px;'>●</span> {line1}</div>
-            <div style="background: rgba(255,255,255,0.03); border-radius: 20px; padding: 10px 16px;"><span style='color: #378ADD; margin-right: 8px; font-size:16px;'>●</span> {line2}</div>
-            <div style="background: rgba(255,255,255,0.03); border-radius: 20px; padding: 10px 16px;"><span style='color: #FFB74D; margin-right: 8px; font-size:16px;'>●</span> {line3}</div>
-        </div>
-        """, unsafe_allow_html=True)
+        # --- HERO SECTION: SECTOR MOMENTUM SCORE ---
+        # Calculation for Momentum Score
+        trend_score = 0
+        if not trends_df.empty:
+            # Avg interest of top 5 companies
+            trend_score = trends_df.mean().mean()
+            
+        rating_score = avg_rating * 20 if avg_rating else 0 # Normalized to 100
+        
+        hiring_score = 0
+        if jobs_data:
+            total_jobs = sum(jobs_data.values())
+            # Arbitrary normalization: 500 jobs = 100 score for a sector
+            hiring_score = min((total_jobs / 500) * 100, 100)
+            
+        sentiment_score = 75 # Fallback
+        if sentiment_data:
+            avg_sent = sum([v.get("sentiment", 0) for v in sentiment_data.values() if v.get("sentiment")]) / len(sentiment_data) if sentiment_data else 0.75
+            sentiment_score = (avg_sent + 1) * 50 # Normalize -1,1 to 0,100
+            
+        momentum_score = int((trend_score * 0.3) + (rating_score * 0.2) + (hiring_score * 0.25) + (sentiment_score * 0.25))
+        
+        # Color and label for score
+        if momentum_score >= 81: score_color, score_label = "#3FB950", "Surging"
+        elif momentum_score >= 61: score_color, score_label = "#378ADD", "Growing"
+        elif momentum_score >= 31: score_color, score_label = "#D29922", "Stable"
+        else: score_color, score_label = "#F85149", "Declining"
 
-        # --- Sector Intelligence ---
-        st.markdown("<p class='chart-title'>Sector Intelligence</p>", unsafe_allow_html=True)
+        col_hero_1, col_hero_2 = st.columns([1, 2])
+        with col_hero_1:
+            fig_gauge = go.Figure(go.Indicator(
+                mode = "gauge+number",
+                value = momentum_score,
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                title = {'text': f"Momentum: {score_label}", 'font': {'size': 18, 'family': 'Manrope', 'color': score_color}},
+                number = {'font': {'size': 60, 'family': 'Manrope', 'color': 'white'}},
+                gauge = {
+                    'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "#21262D"},
+                    'bar': {'color': score_color},
+                    'bgcolor': "rgba(255,255,255,0.03)",
+                    'borderwidth': 2,
+                    'bordercolor': "#21262D",
+                    'steps': [
+                        {'range': [0, 30], 'color': 'rgba(248,81,73,0.1)'},
+                        {'range': [30, 60], 'color': 'rgba(210,153,34,0.1)'},
+                        {'range': [60, 80], 'color': 'rgba(55,138,221,0.1)'},
+                        {'range': [80, 100], 'color': 'rgba(63,185,80,0.1)'}
+                    ],
+                }
+            ))
+            fig_gauge.update_layout(height=280, margin=dict(t=50, b=20, l=30, r=30), paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig_gauge, use_container_width=True, config={'displayModeBar': False})
+
+        with col_hero_2:
+            st.markdown(f"""
+            <div style="font-size: 10px; color: #378ADD; font-weight: bold; letter-spacing: 1.5px; margin-bottom: 12px; margin-top: 20px;">EXECUTIVE SUMMARY</div>
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid #21262D; border-radius: 16px; padding: 24px; color: #C9D1D9; font-size: 14px; display: flex; flex-direction: column; gap: 12px;">
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:8px; height:8px; border-radius:50%; background:#378ADD;"></div>
+                    <span>{line1}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:8px; height:8px; border-radius:50%; background:#3FB950;"></div>
+                    <span>{line2}</span>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:8px; height:8px; border-radius:50%; background:#FFB74D;"></div>
+                    <span>{line3}</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<div style='height: 2rem'></div>", unsafe_allow_html=True)
+        
+        # --- Sector Intelligence Metrics ---
+        st.markdown("<p class='chart-title'>Sector Key Metrics</p>", unsafe_allow_html=True)
         if selected_sector in SECTOR_META:
             meta = SECTOR_META[selected_sector]
             
-            # 4 metric cards
-            mi1, mi2, mi3, mi4 = st.columns([1,1,1,1])
-            with mi1:
-                with st.container(border=True):
-                    st.metric("TAM", f"${meta['tam_usd_bn']}Bn")
-            with mi2:
-                with st.container(border=True):
-                    st.metric("CAGR", f"{meta['cagr_pct']}%")
-            with mi3:
-                with st.container(border=True):
-                    st.metric("Saturation", f"{meta['saturation_score']}/100")
-            with mi4:
-                with st.container(border=True):
-                    st.metric("Stage", meta['market_stage'])
+            # Use custom NixTio metrics grid
+            render_nixtio_metrics_grid([
+                {"label": "Total Addressable Market", "value": f"${meta['tam_usd_bn']}B", "delta": "Est. 2024"},
+                {"label": "Sector CAGR", "value": f"{meta['cagr_pct']}%", "delta": "↑ Growth"},
+                {"label": "Saturation", "value": f"{meta['saturation_score']}", "delta": "Score / 100"},
+                {"label": "Market Stage", "value": meta['market_stage'], "delta": "Development"}
+            ])
+            
+            st.markdown("<div style='height: 1rem'></div>", unsafe_allow_html=True)
             
             # 3 columns for lists
             tl1, tl2, tl3 = st.columns([1,1,1])
@@ -880,6 +1006,7 @@ else:
             
             col_radar, col_radar_text = st.columns([1, 1])
             with col_radar:
+                apply_nixtio_theme(fig)
                 st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
             with col_radar_text:
                 st.markdown("**Reading the radar**")
@@ -968,16 +1095,14 @@ else:
                 except ImportError:
                     st.warning("Company drawer component not yet integrated.")
 
-        m1, m2, m3 = st.columns(3)
-        with m1:
-            with st.container(border=True):
-                st.metric("Sector App Avg", f"{avg_rating} \u2605" if avg_rating else "N/A", delta="Play Store")
-        with m2:
-            with st.container(border=True):
-                st.metric("Top Recruiter", top_hire_co, delta=f"{top_hire_n} open roles")
-        with m3:
-            with st.container(border=True):
-                st.metric("News Mentions (30d)", format_large_number(total_news) if total_news else "N/A", delta="Total sector visibility")
+        st.markdown("<div style='height: 2rem'></div>", unsafe_allow_html=True)
+        st.markdown("<p class='chart-title'>Live Activity Pulse</p>", unsafe_allow_html=True)
+        render_nixtio_metrics_grid([
+            {"label": "Avg App Rating", "value": f"{avg_rating}", "delta": "★ Play Store"},
+            {"label": "Hiring Leader", "value": top_hire_co, "delta": f"{top_hire_n} Openings"},
+            {"label": "News Visibility", "value": format_large_number(total_news), "delta": "Mentions (30d)"}
+        ])
+        st.markdown("<div style='height: 1rem'></div>", unsafe_allow_html=True)
                 
         # --- Company Health Scorecard ---
         import random
@@ -1093,6 +1218,7 @@ else:
             fig_scatter.update_yaxes(range=[-5, 105])
             
             apply_layout(fig_scatter, 450)
+            apply_nixtio_theme(fig_scatter)
             fig_scatter.update_layout(showlegend=False)
             st.plotly_chart(fig_scatter, use_container_width=True)
             
@@ -1122,7 +1248,7 @@ else:
                 total_sector_raised_bn = total_sector_raised_m / 1000.0
                 
                 with st.container(border=True):
-                    st.metric("Total sector capital raised", f"${total_sector_raised_bn:.2f} Bn")
+                    render_nixtio_metric("Total Capital Raised", f"${total_sector_raised_bn:.2f}B", "Sector Total")
                     
                     fdf_sorted = fdf.sort_values("Total Raised ($M)", ascending=True)
                     tier_colors = {
@@ -1141,6 +1267,7 @@ else:
                     )
                     fig_fund.update_traces(textposition="outside", textfont=dict(color="#FFF"), marker_cornerradius=8)
                     apply_layout(fig_fund, 350)
+                    apply_nixtio_theme(fig_fund)
                     st.plotly_chart(fig_fund, use_container_width=True)
                     
                     st.markdown("<p class='chart-subtitle' style='margin-top:1rem; margin-bottom:0.5rem;'>Cap Table & Latest Round Details</p>", unsafe_allow_html=True)
@@ -1159,6 +1286,7 @@ else:
                 fig3 = px.line(long, x=date_col, y="Interest", color="Company", color_discrete_map=cmap)
                 fig3.update_traces(line=dict(width=3, shape="spline"), mode="lines")
                 apply_layout(fig3, 300)
+                apply_nixtio_theme(fig3)
                 st.plotly_chart(fig3, use_container_width=True)
             else:
                 st.info("Google Trends data unavailable.")
@@ -1247,6 +1375,7 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                     fig_news = px.bar(ndf, x="Mentions", y="Company", color="Company", color_discrete_map=cmap, orientation="h", text="Mentions")
                     fig_news.update_traces(textposition="outside", textfont=dict(color="#FFF"), marker_cornerradius=8)
                     apply_layout(fig_news, 400)
+                    apply_nixtio_theme(fig_news)
                     fig_news.update_layout(showlegend=False)
                     st.plotly_chart(fig_news, use_container_width=True)
                 else:
@@ -1260,7 +1389,8 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                     avgs.columns = ["Company", "Avg Interest"]
                     fig_pie = px.pie(avgs, names="Company", values="Avg Interest", color="Company", color_discrete_map=cmap, hole=0.6)
                     fig_pie.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#15111B', width=2)))
-                    fig_pie.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", margin=dict(t=10, b=10, l=10, r=10), showlegend=False, height=400)
+                    apply_nixtio_theme(fig_pie)
+                    fig_pie.update_layout(showlegend=False, height=400)
                     st.plotly_chart(fig_pie, use_container_width=True)
                 else:
                     st.info("No trend data.")
@@ -1276,6 +1406,7 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                     fig2 = px.bar(jdf, x="Company", y="Open Roles", color="Company", color_discrete_map=cmap, text="Open Roles")
                     fig2.update_traces(textposition="outside", textfont=dict(color="#FFF"), marker_cornerradius=8)
                     apply_layout(fig2, 350)
+                    apply_nixtio_theme(fig2)
                     fig2.update_layout(showlegend=False)
                     st.plotly_chart(fig2, use_container_width=True)
                 else:
@@ -1290,6 +1421,7 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                         fig1.update_traces(textposition="outside", textfont=dict(color="#FFF"), width=0.5, marker_cornerradius=8)
                         fig1.update_yaxes(range=[0, 5])
                         apply_layout(fig1, 350)
+                        apply_nixtio_theme(fig1)
                         fig1.update_layout(showlegend=False)
                         st.plotly_chart(fig1, use_container_width=True)
                     else:
@@ -1316,6 +1448,7 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                     fig_s = px.bar(sdf, y="Company", x="Percentage", color="Sentiment", 
                                    orientation='h', barmode='stack', color_discrete_map=color_m)
                     apply_layout(fig_s, max(250, len(sentiment_data)*60))
+                    apply_nixtio_theme(fig_s)
                     fig_s.update_traces(marker_cornerradius=0)
                     # Show legend at the top
                     fig_s.update_layout(legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="left", x=0, title=None))

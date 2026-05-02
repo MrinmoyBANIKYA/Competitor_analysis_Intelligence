@@ -269,6 +269,43 @@ def get_color_scale(n: int, palette: str = "teal") -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Plotly Theme Helper
+# ---------------------------------------------------------------------------
+
+def apply_nixtio_theme(fig):
+    """
+    Applies NixTio's premium dark theme to a Plotly figure.
+    """
+    fig.update_layout(
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(255,255,255,0.03)',
+        font=dict(family='Inter, sans-serif', color='#C9D1D9', size=12),
+        margin=dict(l=40, r=20, t=40, b=40),
+        xaxis=dict(
+            gridcolor='rgba(255,255,255,0.05)',
+            zerolinecolor='rgba(255,255,255,0.1)',
+            tickfont=dict(color='#8B949E')
+        ),
+        yaxis=dict(
+            gridcolor='rgba(255,255,255,0.05)',
+            zerolinecolor='rgba(255,255,255,0.1)',
+            tickfont=dict(color='#8B949E')
+        ),
+        legend=dict(
+            bgcolor='rgba(0,0,0,0)',
+            font=dict(color='#C9D1D9')
+        ),
+        hoverlabel=dict(
+            bgcolor='#161B22',
+            bordercolor='#21262D',
+            font=dict(family='Inter, sans-serif', color='white')
+        )
+    )
+    # Update color scale if it's a bar/scatter/etc
+    fig.update_traces(marker=dict(line=dict(color='rgba(0,0,0,0)')))
+    return fig
+
+# ---------------------------------------------------------------------------
 # Caching / retry helpers
 # ---------------------------------------------------------------------------
 
