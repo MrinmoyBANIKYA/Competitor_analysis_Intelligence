@@ -53,234 +53,260 @@ CHART_COLORS = ["#B388FF", "#D4E157", "#9E9E9E", "#FFB74D", "#81C784", "#CE93D8"
 # Advanced Custom CSS — Premium Authentic Animations
 # ---------------------------------------------------------------------------
 
-st.markdown("""<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap');
+# ---------------------------------------------------------------------------
+# NixTio Design System — Comprehensive CSS Override
+# ---------------------------------------------------------------------------
 
-/* Dynamic Animated Background */
-@keyframes gradientBG {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
+NIXTIO_CSS = f"""
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@700;800&display=swap');
 
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(15px); }
-    to { opacity: 1; transform: translateY(0); }
-}
+/* GLOBAL DEFAULTS */
+html, body, [class*="css"] {{
+    font-family: 'Inter', sans-serif !important;
+    color: #C9D1D9 !important;
+}}
 
-html, body, [class*="css"] {
-    font-family: 'Inter', sans-serif;
-}
+.stApp {{
+    background-color: #0D1117 !important;
+}}
 
-/* Base App Wrapper with Moving Gradient Background */
-.stApp {
-    background: linear-gradient(-45deg, #0B0B0C, #120D23, #091218, #0B0B0C);
-    background-size: 400% 400%;
-    animation: gradientBG 18s ease infinite;
-    color: #FFFFFF;
-}
+/* HIDE STREAMLIT CHROME */
+header[data-testid="stHeader"], footer, #MainMenu {{
+    visibility: hidden !important;
+    display: none !important;
+}}
 
-/* Hide Streamlit Standard Elements */
-#MainMenu, footer, header[data-testid="stHeader"] { visibility: hidden; display: none; }
+/* MAIN CONTENT CONTAINER */
+[data-testid="stMain"] > div {{
+    padding: 0 !important;
+    margin: 0 auto !important;
+    max-width: 1400px !important;
+}}
 
-/* Apply Fade-in to main app views */
-[data-testid="stVerticalBlock"] {
-    animation: fadeIn 0.8s ease-out forwards;
-}
+.main .block-container {{
+    padding-top: 80px !important;
+    padding-left: 2rem !important;
+    padding-right: 2rem !important;
+}}
 
-/* -----------------------------------------------------
- * Login Page Specific
- * ----------------------------------------------------- */
-.login-box {
-    background-color: #15111B;
-    border: 1px solid #2A1A4A;
-    border-radius: 20px;
-    padding: 3rem;
-    box-shadow: 0 15px 40px rgba(0,0,0,0.5);
-    text-align: center;
-    max-width: 450px;
-    margin: auto;
-    margin-top: 10vh;
-    animation: fadeIn 1s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-.login-title {
+/* TOP HEADER BAR */
+.nixtio-header {{
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: #161B22;
+    border-bottom: 1px solid #21262D;
+    display: {"flex" if st.session_state.get("logged_in") else "none"};
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    z-index: 10000;
+}}
+
+.header-left {{
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}}
+
+.header-logo {{
     font-family: 'Manrope', sans-serif;
-    font-size: 2.2rem;
     font-weight: 800;
-    color: #FFFFFF;
-    margin-bottom: 0.5rem;
-}
-.login-subtitle {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.9rem;
-    color: #8E8D92;
-    margin-bottom: 2.5rem;
-}
-
-/* -----------------------------------------------------
- * Dashboard Main Styling
- * ----------------------------------------------------- */
-
-/* Dashboard Titles */
-.dashboard-title {
-    font-family: 'Manrope', sans-serif;
-    font-weight: 800; font-size: 1.8rem;
-    color: #FFFFFF; letter-spacing: -0.02em;
-    margin: 0; padding: 0;
-}
-.dashboard-subtitle {
-    font-family: 'Inter', sans-serif;
-    font-size: 0.85rem; color: #8E8D92;
-    font-weight: 500; margin-top: 2px;
-}
-
-/* Metric Cards */
-[data-testid="stMetricValue"] {
-    font-family: 'Manrope', sans-serif !important;
-    font-weight: 700 !important; font-size: 1.8rem !important;
-    color: #FFFFFF !important;
-}
-[data-testid="stMetricLabel"] {
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 500 !important; font-size: 0.75rem !important;
-    color: #8E8D92 !important;
-}
-[data-testid="stMetricDelta"] {
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 500 !important; font-size: 0.75rem !important;
-    color: #B388FF !important;
-}
-
-/* Modern Card Wrappers with Hover Animations */
-div[data-testid="stVerticalBlockBorderWrapper"] {
-    background-color: #15111B !important;
-    border-radius: 20px !important;
-    border: 1px solid #2A1A4A !important;
-    box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.3);
-    padding: 0.5rem;
-    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
-}
-div[data-testid="stVerticalBlockBorderWrapper"]:hover {
-    transform: translateY(-5px);
-    box-shadow: 0px 12px 25px rgba(179, 136, 255, 0.1);
-    border-color: #B388FF !important;
-}
-
-/* Chart Titles */
-.chart-title {
-    font-family: 'Manrope', sans-serif;
-    font-weight: 600; font-size: 1.1rem;
-    color: #FFFFFF; margin-bottom: 0.1rem;
-}
-
-/* Sidebar Customisation */
-[data-testid="stSidebar"] {
-    background-color: #110D17 !important;
-    border-right: 1px solid #2A1A4A;
-}
-.stRadio > div { gap: 1rem; }
-.stRadio label {
-    font-family: 'Manrope', sans-serif !important;
-    font-size: 1.05rem !important;
-    font-weight: 600 !important;
-    color: #8E8D92 !important;
-    cursor: pointer;
-    padding: 0.2rem 0;
-    transition: color 0.2s ease;
-}
-.stRadio label:hover { color: #B388FF !important; }
-
-/* Elegant Input & Select Fields */
-div[data-testid="stTextInput"] input, div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-    background-color: #1A1525;
-    border: 1px solid #2A1A4A;
-    border-radius: 12px;
+    font-size: 1.4rem;
     color: white;
-    transition: border 0.3s ease, box-shadow 0.3s ease;
-}
-div[data-testid="stTextInput"] input:focus, div[data-testid="stSelectbox"] div[data-baseweb="select"] > div:focus-within {
-    border: 1px solid #B388FF;
-    box-shadow: 0 0 10px rgba(179, 136, 255, 0.2);
-}
-div[data-testid="stSelectbox"] label { display: none; }
+    letter-spacing: -0.02em;
+}}
 
-/* Base Authenticated Action Buttons */
-.stButton > button, .stDownloadButton > button {
-    background: linear-gradient(135deg, #7E57C2 0%, #9C27B0 100%) !important;
-    color: #FFFFFF !important;
+.header-logo span {{
+    color: #378ADD;
+}}
+
+.breadcrumb {{
+    color: #8B949E;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-weight: 500;
+}}
+
+.breadcrumb::before {{
+    content: '/';
+    color: #30363D;
+    margin-right: 4px;
+}}
+
+.header-right {{
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}}
+
+.avatar-circle {{
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #378ADD, #1E4D8C);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+    font-size: 0.85rem;
+    border: 2px solid #21262D;
+}}
+
+/* SIDEBAR STYLING */
+[data-testid="stSidebar"] {{
+    background-color: #161B22 !important;
+    border-right: 1px solid #21262D !important;
+    width: 280px !important;
+}}
+
+[data-testid="stSidebar"] > div:first-child {{
+    padding-top: 20px !important;
+}}
+
+/* Sidebar navigation labels */
+[data-testid="stSidebar"] .stRadio label p {{
+    font-size: 0.95rem !important;
+    font-weight: 500 !important;
+    color: #8B949E !important;
+}}
+
+/* Nav Pill Styling */
+[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label {{
+    padding: 0.5rem 1rem !important;
+    border-radius: 8px !important;
+    margin-bottom: 0.25rem !important;
+    transition: all 0.2s ease !important;
+    border-left: 3px solid transparent !important;
+    background: transparent !important;
+}}
+
+[data-testid="stSidebar"] .stRadio div[role="radiogroup"] > label:hover {{
+    background: rgba(255, 255, 255, 0.03) !important;
+}}
+
+/* Active State */
+[data-testid="stSidebar"] .stRadio div[role="radiogroup"] input:checked + div {{
+    background: rgba(55, 138, 221, 0.15) !important;
+    border-left: 3px solid #378ADD !important;
+}}
+
+[data-testid="stSidebar"] .stRadio div[role="radiogroup"] input:checked + div p {{
+    color: white !important;
+    font-weight: 600 !important;
+}}
+
+/* Section Labels */
+.sidebar-section-label {{
+    font-size: 0.65rem !important;
+    font-weight: 800 !important;
+    color: #484F58 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.2em !important;
+    margin: 2rem 0 0.5rem 1rem !important;
+}}
+
+/* METRIC CARDS - GLASSMORPHISM */
+[data-testid="stMetric"] {{
+    background: rgba(255, 255, 255, 0.03) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    backdrop-filter: blur(10px) !important;
+    padding: 1.25rem !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}}
+
+[data-testid="stMetricValue"] {{
     font-family: 'Manrope', sans-serif !important;
-    font-weight: 700 !important; font-size: 0.9rem !important;
-    border-radius: 12px !important; border: none !important;
-    padding: 0.6rem 1.5rem !important;
-    box-shadow: 0 4px 15px rgba(126,87,194,0.4) !important;
-    transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
-    width: 100%;
-}
-.stButton > button:hover, .stDownloadButton > button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(126,87,194,0.6) !important;
-    background: linear-gradient(135deg, #8E6CE2 0%, #BA47D1 100%) !important;
-}
+    font-weight: 700 !important;
+    font-size: 1.8rem !important;
+    color: white !important;
+}}
 
-/* Login specific primary button */
-[data-testid="stForm"] .stButton > button {
-    background: linear-gradient(135deg, #D4E157 0%, #AEEA00 100%) !important;
-    color: #110D17 !important;
-    box-shadow: 0 4px 15px rgba(212,225,87,0.3) !important;
-}
-[data-testid="stForm"] .stButton > button:hover {
-    box-shadow: 0 8px 25px rgba(212,225,87,0.5) !important;
-}
+[data-testid="stMetricLabel"] {{
+    font-family: 'Inter', sans-serif !important;
+    color: #8B949E !important;
+    font-size: 0.8rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+}}
 
-.insight-box {
-    background: linear-gradient(135deg, #1A1525 0%, #2A1A4A 100%);
-    border-radius: 16px;
-    padding: 1.5rem;
-    border: 1px solid #3B2D59;
-    margin-bottom: 2rem;
-    transition: all 0.3s ease;
-}
-.insight-box:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(0,0,0,0.5);
-    border-color: #D4E157;
-}
-.insight-box h4 {
-    font-family: 'Manrope', sans-serif;
-    color: #D4E157;
-    margin: 0 0 0.5rem 0;
-    font-size: 1rem;
-}
-.insight-box p {
-    color: #EEEDEB;
-    line-height: 1.6;
-    margin: 0;
-    font-size: 0.9rem;
-}
+/* BUTTONS */
+.stButton > button {{
+    border-radius: 8px !important;
+    font-family: 'Manrope', sans-serif !important;
+    font-weight: 700 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}}
 
-/* Page titles */
-.page-header {
-    font-family: 'Manrope', sans-serif;
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: #FFFFFF;
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid #2A1A4A;
-}
+.stButton > button[kind="primary"] {{
+    background-color: #378ADD !important;
+    border: none !important;
+    color: white !important;
+    box-shadow: 0 4px 14px rgba(55, 138, 221, 0.2) !important;
+}}
 
-/* History Logs */
-.log-row {
-    display: flex; justify-content: space-between; align-items: center;
-    background: #1A1525; border: 1px solid #2A1A4A; 
-    border-radius: 12px; padding: 1rem; margin-bottom: 0.8rem;
-    transition: transform 0.2s;
-}
-.log-row:hover {
-    transform: scale(1.01);
-    border-color: #B388FF;
-}
-</style>""", unsafe_allow_html=True)
+.stButton > button:hover {{
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(55, 138, 221, 0.3) !important;
+}}
+
+/* HEADERS */
+h1, h2, h3, .page-header {{
+    font-family: 'Manrope', sans-serif !important;
+    color: white !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.02em !important;
+}}
+
+/* SKELETON LOADERS */
+.nixtio-skeleton {{
+    background: linear-gradient(90deg, #161B22 25%, #1C2128 50%, #161B22 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+    border-radius: 8px;
+}}
+
+@keyframes skeleton-loading {{
+    0% {{ background-position: 200% 0; }}
+    100% {{ background-position: -200% 0; }}
+}}
+
+/* HEADER ACTION BUTTON POSITIONING */
+.header-action-container {{
+    position: fixed;
+    top: 12px;
+    right: 80px;
+    z-index: 10001;
+    display: {"block" if st.session_state.get("logged_in") else "none"};
+}}
+
+.header-action-container button {{
+    height: 36px !important;
+    padding: 0 1.25rem !important;
+    font-size: 0.85rem !important;
+}}
+</style>
+
+<div class="nixtio-header">
+    <div class="header-left">
+        <div class="header-logo">N<span>•</span> NixTio</div>
+        <div class="breadcrumb">{st.session_state.get('sector_selector', 'Overview')}</div>
+    </div>
+    <div class="header-right">
+        <div class="avatar-circle">MB</div>
+    </div>
+</div>
+"""
+st.markdown(NIXTIO_CSS, unsafe_allow_html=True)
+
 
 
 # ==============================================================================
@@ -616,18 +642,7 @@ else:
 
     # Navigation Sidebar
     with st.sidebar:
-        # Authentic SVG text/icon logo
-        st.markdown("""
-        <div style='padding:1rem 0 2rem 0; display:flex; align-items:center; gap: 10px'>
-            <svg width="32" height="32" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="40" cy="40" r="30" fill="#B388FF" opacity="0.8"/>
-                <circle cx="60" cy="60" r="30" fill="#D4E157" opacity="0.9"/>
-            </svg>
-            <div>
-                <h2 style='margin:0;font-family:Manrope,sans-serif;font-weight:800;color:#B388FF; line-height:1'>nix<span style='color:#FFF'>tio</span></h2>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+        st.sidebar.markdown('<p class="sidebar-section-label">Market Intelligence</p>', unsafe_allow_html=True)
         
         menu_options = [
             "Overview", 
@@ -641,7 +656,7 @@ else:
         if st.secrets.get("IS_ADMIN", False):
             menu_options.append("Settings ⚙")
             
-        view = st.radio("MENU", menu_options)
+        view = st.radio("MENU", menu_options, label_visibility="collapsed")
         
         st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
         st.sidebar.markdown("---")
@@ -663,15 +678,20 @@ else:
             else:
                 st.sidebar.warning("Select a dashboard view to compare.")
 
-        st.markdown("<div style='margin-top: 2rem;'></div>", unsafe_allow_html=True)
-        st.markdown(f"<p style='color:#8E8D92;font-size:0.75rem;'>System Time:<br><span style='color:#D4E157'>{timestamp_label()}</span></p>", unsafe_allow_html=True)
-        
-        # Logout button
-        if st.button("Logout Session"):
+        st.sidebar.markdown("---")
+        if st.sidebar.button("Logout Session", key="logout_sidebar"):
             st.session_state.logged_in = False
             st.rerun()
+            
+    # Header Action Button (positioned via CSS)
+    st.markdown('<div class="header-action-container">', unsafe_allow_html=True)
+    if st.button("Generate Report", key="header_gen_report", kind="primary"):
+        # This button is visually in the header, but defined here for Streamlit logic
+        # We can't easily change the radio value from here without a callback or rerun
+        pass 
+    st.markdown('</div>', unsafe_allow_html=True)
 
-    # Top Bar (Header)
+    # Top Bar (Header) - Original Streamlit Columns (Hide or repurpose)
     top1, top2, top3 = st.columns([4, 3, 3])
 
     with top1:
