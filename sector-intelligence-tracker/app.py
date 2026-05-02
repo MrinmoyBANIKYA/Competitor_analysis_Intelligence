@@ -49,7 +49,7 @@ if "history" not in st.session_state:
 if "demo_mode" not in st.session_state:
     st.session_state.demo_mode = False
 if "onboarded" not in st.session_state:
-    st.session_state.onboarded = False
+    st.session_state.onboarded = True
 if "sector_selector" not in st.session_state:
     st.session_state["sector_selector"] = list_sector_keys()[0]
 if "last_sector" not in st.session_state:
