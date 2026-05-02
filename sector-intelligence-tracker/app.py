@@ -95,24 +95,20 @@ header[data-testid="stHeader"], footer, #MainMenu {{
     display: none !important;
 }}
 
-/* MAIN CONTENT CONTAINER */
-[data-testid="stMain"] > div {{
-    padding: 0 !important;
-    margin: 0 auto !important;
-    max-width: 1400px !important;
-}}
+
 
 .main .block-container {{
-    padding-top: 2rem !important;
-    padding-left: 3rem !important;
-    padding-right: 3rem !important;
+    padding-top: 3rem !important;
+    padding-left: 5rem !important;
+    padding-right: 5rem !important;
+    max-width: 1600px !important;
+    margin: 0 auto !important;
 }}
 
 /* SIDEBAR STYLING */
 [data-testid="stSidebar"] {{
     background-color: #161B22 !important;
     border-right: 1px solid #21262D !important;
-    width: 280px !important;
 }}
 
 [data-testid="stSidebar"] > div:first-child {{
