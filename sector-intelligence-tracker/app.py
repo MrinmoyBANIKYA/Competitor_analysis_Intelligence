@@ -51,9 +51,9 @@ if "demo_mode" not in st.session_state:
 if "onboarded" not in st.session_state:
     st.session_state.onboarded = False
 if "sector_selector" not in st.session_state:
-    st.session_state.sector_selector = list_sector_keys()[0]
+    st.session_state["sector_selector"] = list_sector_keys()[0]
 if "last_sector" not in st.session_state:
-    st.session_state.last_sector = st.session_state.sector_selector
+    st.session_state["last_sector"] = st.session_state["sector_selector"]
 
 # ---------------------------------------------------------------------------
 # Constants

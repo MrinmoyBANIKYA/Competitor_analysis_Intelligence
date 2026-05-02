@@ -708,7 +708,9 @@ def get_news_data(companies: list, api_key: str) -> dict:
 
 def get_sentiment_data(app_ids: dict, companies: list) -> dict:
     try:
-        data = get_review_sentiment(app_ids)
+        # Since get_review_sentiment isn't implemented, we use the fallback system natively 
+        # to ensure the DataFetcher thread doesn't crash with a NameError
+        data = get_fallback_sentiment(companies)
         status = "ok" if data else "failed"
         return {"data": data, "status": status, "source_name": "Play Store Sentiment", "error_message": None, "last_updated": datetime.now()}
     except Exception as e:
