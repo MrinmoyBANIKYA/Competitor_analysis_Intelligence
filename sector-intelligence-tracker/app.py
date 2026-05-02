@@ -103,78 +103,9 @@ header[data-testid="stHeader"], footer, #MainMenu {{
 }}
 
 .main .block-container {{
-    padding-top: 80px !important;
-    padding-left: 2rem !important;
-    padding-right: 2rem !important;
-}}
-
-/* TOP HEADER BAR */
-.nixtio-header {{
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 60px;
-    background-color: #161B22;
-    border-bottom: 1px solid #21262D;
-    display: {"flex" if st.session_state.get("logged_in") else "none"};
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 2rem;
-    z-index: 10000;
-}}
-
-.header-left {{
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-}}
-
-.header-logo {{
-    font-family: 'Manrope', sans-serif;
-    font-weight: 800;
-    font-size: 1.4rem;
-    color: white;
-    letter-spacing: -0.02em;
-}}
-
-.header-logo span {{
-    color: #378ADD;
-}}
-
-.breadcrumb {{
-    color: #8B949E;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    font-weight: 500;
-}}
-
-.breadcrumb::before {{
-    content: '/';
-    color: #30363D;
-    margin-right: 4px;
-}}
-
-.header-right {{
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-}}
-
-.avatar-circle {{
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    background: linear-gradient(135deg, #378ADD, #1E4D8C);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-weight: 700;
-    font-size: 0.85rem;
-    border: 2px solid #21262D;
+    padding-top: 2rem !important;
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
 }}
 
 /* SIDEBAR STYLING */
@@ -277,11 +208,25 @@ header[data-testid="stHeader"], footer, #MainMenu {{
 }}
 
 /* HEADERS */
-h1, h2, h3, .page-header {{
+h1, h2, h3, .page-header, .chart-title {{
     font-family: 'Manrope', sans-serif !important;
     color: white !important;
     font-weight: 700 !important;
     letter-spacing: -0.02em !important;
+    margin-left: 0.5rem !important; /* Prevent cut-off */
+}}
+
+.page-header {{
+    font-size: 2.2rem !important;
+    margin-bottom: 1.5rem !important;
+}}
+
+.chart-title {{
+    font-size: 1.2rem !important;
+    color: #378ADD !important;
+    margin-bottom: 0.75rem !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
 }}
 
 /* SKELETON LOADERS */
@@ -308,15 +253,7 @@ h1, h2, h3, .page-header {{
 }}
 </style>
 
-<div class="nixtio-header">
-    <div class="header-left">
-        <div class="header-logo">N<span>•</span> NixTio</div>
-        <div class="breadcrumb">{st.session_state.get('sector_selector', 'Overview')}</div>
-    </div>
-    <div class="header-right">
-        <div class="avatar-circle">MB</div>
-    </div>
-</div>
+
 """
 st.markdown(NIXTIO_CSS, unsafe_allow_html=True)
 
@@ -838,15 +775,15 @@ else:
             
 
 
-    # Top Bar (Header) - Original Streamlit Columns (Hide or repurpose)
-    top1, top2, top3 = st.columns([4, 3, 3])
+    # Top Bar (Header) - Rebalanced Columns
+    top1, top2, top3 = st.columns([1, 1.5, 2.5])
 
     with top1:
-        st.markdown(f"<p class='dashboard-title'>{view}</p>", unsafe_allow_html=True)
+        st.markdown(f"<p class='header-logo' style='margin-top: 5px;'>N• <span>NixTio</span></p>", unsafe_allow_html=True)
 
     with top2:
         if view not in ["Report History", "About Product"]:
-            selected_sector = st.selectbox("Sector", list_sector_keys(), index=0, key="sector_selector")
+            selected_sector = st.selectbox("Sector Intelligence", list_sector_keys(), index=0, key="sector_selector", label_visibility="collapsed")
         else:
             selected_sector = "None"
 
@@ -854,23 +791,22 @@ else:
         col_gen, col_prof = st.columns([1, 1.2])
         with col_gen:
             if st.button("Generate Report", key="top_gen_report", type="primary", use_container_width=True):
-                # Since we can't easily switch the radio, we just set a flag
                 st.session_state["force_view"] = "Generate Report"
                 st.rerun()
 
         with col_prof:
-            # Admin Profile Mrinmoy Banikya
-            st.markdown("""
-            <div style='display:flex; justify-content:flex-end; align-items:center; height:100%; gap: 12px;'>
+            # Profile Avatar & Name
+            st.markdown(f"""
+            <div style='display:flex; justify-content:flex-end; align-items:center; gap: 12px;'>
                 <div style='text-align:right'>
-                    <div style='font-family:Manrope; font-weight:700; font-size:0.9rem; color:#FFF; line-height:1.1;'>Mrinmoy Banikya</div>
-                    <div style='font-family:Inter; font-size:0.65rem; color:#D4E157; font-weight:600; text-transform:uppercase; letter-spacing:0.05em'>Super Admin</div>
+                    <div style='font-family:Manrope; font-weight:700; font-size:0.85rem; color:#FFF; line-height:1.1;'>Mrinmoy Banikya</div>
+                    <div style='font-family:Inter; font-size:0.65rem; color:#378ADD; font-weight:600; text-transform:uppercase;'>Super Admin</div>
                 </div>
-                <div style='width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg, #B388FF, #7E57C2);display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:bold;font-size:1.1rem;box-shadow: 0 4px 10px rgba(126,87,194,0.4)'>M</div>
+                <div style='width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg, #378ADD, #1E4D8C);display:flex;align-items:center;justify-content:center;color:#FFF;font-weight:bold;font-size:1rem;'>MB</div>
             </div>
             """, unsafe_allow_html=True)
 
-    st.markdown("<div style='height: 1.5rem'></div>", unsafe_allow_html=True)
+    st.markdown("---")
 
     # ---------------------------------------------------------------------------
     # Global Data Loading 
