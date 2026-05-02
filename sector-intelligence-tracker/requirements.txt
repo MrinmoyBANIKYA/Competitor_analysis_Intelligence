@@ -15,6 +15,7 @@ plotly>=5.18.0
 # PDF generation
 fpdf2>=2.7.9
 kaleido>=0.2.1
+matplotlib>=3.7.0
 
 # HTTP / web scraping
 requests>=2.31.0

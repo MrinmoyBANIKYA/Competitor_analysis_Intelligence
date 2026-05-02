@@ -553,7 +553,7 @@ if not st.session_state.logged_in:
     """, unsafe_allow_html=True)
 
     # Use Streamlit columns for the 60/40 layout
-    col_left, col_right = st.columns([0.6, 0.4], gap="small")
+    col_left, col_right = st.columns([0.6, 0.4])
 
     with col_left:
         st.markdown(f"""
@@ -886,7 +886,7 @@ else:
             
     # Header Action Button (positioned via CSS)
     st.markdown('<div class="header-action-container">', unsafe_allow_html=True)
-    if st.button("Generate Report", key="header_gen_report", kind="primary"):
+    if st.button("Generate Report", key="header_gen_report", type="primary"):
         # This button is visually in the header, but defined here for Streamlit logic
         # We can't easily change the radio value from here without a callback or rerun
         pass 
