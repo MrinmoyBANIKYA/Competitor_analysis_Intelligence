@@ -553,7 +553,7 @@ if not st.session_state.logged_in:
     """, unsafe_allow_html=True)
 
     # Use Streamlit columns for the 60/40 layout
-    col_left, col_right = st.columns([0.6, 0.4], gap="none")
+    col_left, col_right = st.columns([0.6, 0.4], gap="small")
 
     with col_left:
         st.markdown(f"""
