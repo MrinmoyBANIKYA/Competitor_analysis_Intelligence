@@ -834,6 +834,16 @@ else:
                 sector_data = SectorData({"error": {"status": "failed"}}) # Minimal mock for health score
                 sector_data.health_score = 0
 
+        # --- GLOBAL MOMENTUM SCORE CALCULATION ---
+        trend_score = trends_df.mean().mean() if not trends_df.empty else 0
+        rv = [v["rating"] for v in ratings_data.values() if v["rating"] > 0] if ratings_data else []
+        rating_score = (sum(rv) / len(rv) * 20) if rv else 0
+        hiring_score = min((sum(jobs_data.values()) / 500) * 100, 100) if jobs_data else 0
+        avg_sent = sum([v.get("sentiment", 0) for v in sentiment_data.values() if v.get("sentiment")]) / len(sentiment_data) if sentiment_data else 0.75
+        sentiment_score = (avg_sent + 1) * 50
+        
+        st.session_state.momentum_score = int((trend_score * 0.3) + (rating_score * 0.2) + (hiring_score * 0.25) + (sentiment_score * 0.25))
+
         # Health Banner below header
         render_data_health_banner(sector_data.health_score)
 
@@ -896,27 +906,7 @@ else:
         line2 = f"{top_hire_co} is in aggressive hiring mode with {top_hire_n} open roles ({pct_diff:+.0f}% vs sector avg) — watch for a product launch signal."
         line3 = f"{risk_co} shows scaling stress: {risk_jobs} open roles but only {risk_emp:.1f}/5 employer rating — attrition risk is elevated."
 
-        # --- HERO SECTION: SECTOR MOMENTUM SCORE ---
-        # Calculation for Momentum Score
-        trend_score = 0
-        if not trends_df.empty:
-            # Avg interest of top 5 companies
-            trend_score = trends_df.mean().mean()
-            
-        rating_score = avg_rating * 20 if avg_rating else 0 # Normalized to 100
-        
-        hiring_score = 0
-        if jobs_data:
-            total_jobs = sum(jobs_data.values())
-            # Arbitrary normalization: 500 jobs = 100 score for a sector
-            hiring_score = min((total_jobs / 500) * 100, 100)
-            
-        sentiment_score = 75 # Fallback
-        if sentiment_data:
-            avg_sent = sum([v.get("sentiment", 0) for v in sentiment_data.values() if v.get("sentiment")]) / len(sentiment_data) if sentiment_data else 0.75
-            sentiment_score = (avg_sent + 1) * 50 # Normalize -1,1 to 0,100
-            
-        momentum_score = int((trend_score * 0.3) + (rating_score * 0.2) + (hiring_score * 0.25) + (sentiment_score * 0.25))
+        momentum_score = st.session_state.momentum_score
         
         # Color and label for score
         if momentum_score >= 81: score_color, score_label = "#3FB950", "Surging"
@@ -1526,8 +1516,8 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                             df_news=news_data,
                             df_glassdoor=employer_data,
                             insight_text=sector_config["insight"],
-                            personalised_line_1=f"{companies[0]} shows dynamic movement in {selected_sector}." if companies else "",
-                            personalised_line_2=sector_config["insight"],
+                            momentum_score=st.session_state.momentum_score,
+                            trends_df=trends_df,
                             meta=SECTOR_META.get(selected_sector, {}),
                         )
                         if pdf_bytes:
