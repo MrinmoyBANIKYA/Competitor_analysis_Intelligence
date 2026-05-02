@@ -12,12 +12,8 @@ import plotly.graph_objects as go
 import datetime
 
 from data.scrapers import (
-    get_playstore_ratings,
-    get_google_trends,
-    get_news_mentions,
-    get_linkedin_job_count,
-    get_ambitionbox_rating,
-    get_review_sentiment,
+    DataFetcher,
+    SectorData
 )
 from data.sectors import SECTORS, list_sector_keys
 from data.sector_meta import SECTOR_META
@@ -647,6 +643,37 @@ else:
         )
         return fig
 
+    @st.cache_data(ttl=3600, show_spinner=False)
+    def cached_fetch_sector_data(sector_key: str, news_api_key: str):
+        fetcher = DataFetcher()
+        sector_config = SECTORS[sector_key]
+        companies = sector_config["companies"]
+        return fetcher.fetch_all(sector_config, companies, news_api_key)
+
+    def render_data_health_banner(health_score):
+        if health_score >= 100:
+            color, text = "#3FB950", "All signals live"
+        elif health_score >= 60:
+            color, text = "#D29922", "Partial signals live — some data may be stale"
+        else:
+            color, text = "#F85149", "Limited data — showing cached intelligence"
+        
+        st.markdown(f"""
+        <div style="display:flex; align-items:center; gap:12px; margin-bottom:1.5rem; background:rgba(255,255,255,0.02); padding:8px 16px; border-radius:8px; border: 1px solid rgba(255,255,255,0.05);">
+            <span style="color:#8B949E; font-size:0.75rem; font-weight:700; text-transform:uppercase; letter-spacing:0.1em;">Intel Health</span>
+            <div style="display:flex; align-items:center; gap:6px; background:{color}22; color:{color}; padding:4px 10px; border-radius:6px; border:1px solid {color}44; font-size:0.8rem; font-weight:600;">
+                <div style="width:6px; height:6px; border-radius:50%; background:{color};"></div>
+                {text}
+            </div>
+            {f'<div style="margin-left:auto"><a href="/" style="color:#8B949E; text-decoration:none; font-size:0.75rem;">Refresh System</a></div>' if health_score < 60 else ''}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if health_score < 60:
+             if st.button("Force Global Refresh", key="global_refresh_btn", use_container_width=False):
+                 st.cache_data.clear()
+                 st.rerun()
+
     def color_map_for(companies):
         return {c: CHART_COLORS[i % len(CHART_COLORS)] for i, c in enumerate(companies)}
 
@@ -777,28 +804,38 @@ else:
         cmap = color_map_for(companies)
 
         with st.status("Syncing intelligence data...", expanded=True) as status:
-            st.write("Initializing scrapers...")
+            st.write("Initializing secure parallel fetcher...")
             render_skeleton_metrics()
             
-            st.write("Fetching Play Store ratings...")
-            ratings_data = cached_playstore_ratings(selected_sector)
-            
-            st.write("Processing Google Trends...")
-            trends_df    = cached_google_trends(selected_sector)
-            
-            st.write("Analyzing News mentions...")
-            news_data    = cached_news_mentions(selected_sector, NEWS_API_KEY)
-            
-            st.write("Scanning LinkedIn job boards...")
-            jobs_data    = cached_linkedin_jobs(selected_sector)
-            
-            st.write("Aggregating Employer reviews...")
-            employer_data = cached_ambitionbox(selected_sector)
-            
-            st.write("Evaluating Customer sentiment...")
-            sentiment_data = cached_review_sentiment(selected_sector)
-            
-            status.update(label="Intelligence Sync Complete", state="complete", expanded=False)
+            try:
+                sector_data = cached_fetch_sector_data(selected_sector, NEWS_API_KEY)
+                
+                # Unpack for easier access in the app
+                ratings_data = sector_data.ratings
+                trends_df = sector_data.trends
+                news_data = sector_data.news
+                jobs_data = sector_data.jobs
+                employer_data = sector_data.employer
+                sentiment_data = sector_data.sentiment
+                
+                status.update(label="Intelligence Sync Complete", state="complete", expanded=False)
+            except Exception as e:
+                status.update(label="Sync Failed - Using Offline Intelligence", state="error", expanded=False)
+                from data.fallback_data import (
+                    get_fallback_trends, get_fallback_playstore, get_fallback_linkedin, 
+                    get_fallback_ambitionbox, get_fallback_news, get_fallback_sentiment
+                )
+                ratings_data = get_fallback_playstore(companies)
+                trends_df = get_fallback_trends(companies)
+                news_data = get_fallback_news(companies)
+                jobs_data = get_fallback_linkedin(companies)
+                employer_data = get_fallback_ambitionbox(companies)
+                sentiment_data = get_fallback_sentiment(companies)
+                sector_data = SectorData({"error": {"status": "failed"}}) # Minimal mock for health score
+                sector_data.health_score = 0
+
+        # Health Banner below header
+        render_data_health_banner(sector_data.health_score)
 
         with st.sidebar:
             from components.analyst_chat import render_analyst_sidebar

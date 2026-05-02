@@ -8,11 +8,14 @@ a :class:`pandas.DataFrame` (or a plain ``dict`` where appropriate)
 so that callers in ``app.py`` remain free of scraping logic.
 """
 
+import concurrent.futures
+import os
+import logging
 import re
 import time
-import logging
 import urllib.parse
 from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
 import requests
 import pandas as pd
@@ -20,7 +23,22 @@ from bs4 import BeautifulSoup
 from pytrends.request import TrendReq
 from google_play_scraper import app as gps_app, reviews as gps_reviews, Sort
 
+from data.fallback_data import (
+    get_fallback_trends,
+    get_fallback_playstore,
+    get_fallback_linkedin,
+    get_fallback_ambitionbox,
+    get_fallback_news,
+    get_fallback_sentiment
+)
+
 logger = logging.getLogger(__name__)
+
+def _log_scraper_error(source: str, error: Exception):
+    os.makedirs("logs", exist_ok=True)
+    with open("logs/scraper_errors.log", "a") as f:
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        f.write(f"[{ts}] {source} ERROR: {str(error)}\n")
 
 # ---------------------------------------------------------------------------
 # Google Trends
@@ -640,54 +658,101 @@ def get_ambitionbox_rating(companies: list) -> dict:
     return result
 
 # ---------------------------------------------------------------------------
-# Play Store Review Sentiment Extraction
+# Production Wrappers & DataFetcher
 # ---------------------------------------------------------------------------
 
-def get_review_sentiment(app_ids: dict) -> dict:
-    """
-    Fetch up to 100 most relevant reviews to extract sentiment and major complaints.
-    """
-    from google_play_scraper import reviews, Sort
-    from collections import Counter
-    import re
-    
-    stopwords = {'the','is','a','app','to','and','of','it','in','this','i','my','for','on','with','not','have','are','but','that','as','they','you','me','your'}
-    result_dict = {}
-    
-    for company, app_id in app_ids.items():
-        try:
-            res, _ = reviews(app_id, lang='en', country='in', sort=Sort.MOST_RELEVANT, count=100)
-            if not res:
-                continue
-                
-            pos = neu = neg = 0
-            neg_words = []
+def get_trends_data(companies: list) -> dict:
+    try:
+        data = get_google_trends(companies)
+        status = "ok" if not data.empty else "failed"
+        return {"data": data, "status": status, "source_name": "Google Trends", "error_message": None, "last_updated": datetime.now()}
+    except Exception as e:
+        _log_scraper_error("Google Trends", e)
+        return {"data": get_fallback_trends(companies), "status": "failed", "source_name": "Google Trends", "error_message": str(e), "last_updated": datetime.now()}
+
+def get_play_store_data(app_ids: dict, companies: list) -> dict:
+    try:
+        data = get_playstore_ratings(app_ids)
+        status = "ok" if data else "failed"
+        return {"data": data, "status": status, "source_name": "Play Store", "error_message": None, "last_updated": datetime.now()}
+    except Exception as e:
+        _log_scraper_error("Play Store", e)
+        return {"data": get_fallback_playstore(companies), "status": "failed", "source_name": "Play Store", "error_message": str(e), "last_updated": datetime.now()}
+
+def get_linkedin_jobs(slugs: dict, companies: list) -> dict:
+    try:
+        data = get_linkedin_job_count(slugs)
+        status = "ok" if data else "failed"
+        return {"data": data, "status": status, "source_name": "LinkedIn Jobs", "error_message": None, "last_updated": datetime.now()}
+    except Exception as e:
+        _log_scraper_error("LinkedIn Jobs", e)
+        return {"data": get_fallback_linkedin(companies), "status": "failed", "source_name": "LinkedIn Jobs", "error_message": str(e), "last_updated": datetime.now()}
+
+def get_ambitionbox_data(companies: list) -> dict:
+    try:
+        data = get_ambitionbox_rating(companies)
+        status = "ok" if data else "failed"
+        return {"data": data, "status": status, "source_name": "AmbitionBox", "error_message": None, "last_updated": datetime.now()}
+    except Exception as e:
+        _log_scraper_error("AmbitionBox", e)
+        return {"data": get_fallback_ambitionbox(companies), "status": "failed", "source_name": "AmbitionBox", "error_message": str(e), "last_updated": datetime.now()}
+
+def get_news_data(companies: list, api_key: str) -> dict:
+    try:
+        data = get_news_mentions(companies, api_key)
+        status = "ok" if data else "failed"
+        return {"data": data, "status": status, "source_name": "NewsAPI", "error_message": None, "last_updated": datetime.now()}
+    except Exception as e:
+        _log_scraper_error("NewsAPI", e)
+        return {"data": get_fallback_news(companies), "status": "failed", "source_name": "NewsAPI", "error_message": str(e), "last_updated": datetime.now()}
+
+def get_sentiment_data(app_ids: dict, companies: list) -> dict:
+    try:
+        data = get_review_sentiment(app_ids)
+        status = "ok" if data else "failed"
+        return {"data": data, "status": status, "source_name": "Play Store Sentiment", "error_message": None, "last_updated": datetime.now()}
+    except Exception as e:
+        _log_scraper_error("Sentiment", e)
+        return {"data": get_fallback_sentiment(companies), "status": "failed", "source_name": "Play Store Sentiment", "error_message": str(e), "last_updated": datetime.now()}
+
+class SectorData:
+    def __init__(self, results: dict):
+        self.results = results
+        self.trends = results.get("trends", {}).get("data")
+        self.ratings = results.get("ratings", {}).get("data")
+        self.jobs = results.get("jobs", {}).get("data")
+        self.employer = results.get("employer", {}).get("data")
+        self.news = results.get("news", {}).get("data")
+        self.sentiment = results.get("sentiment", {}).get("data")
+        
+        ok_count = sum(1 for r in results.values() if r.get("status") == "ok")
+        self.health_score = (ok_count / len(results)) * 100 if results else 0
+
+class DataFetcher:
+    def fetch_all(self, sector_config: dict, companies: list, news_api_key: str) -> SectorData:
+        app_ids = sector_config.get("app_ids", {})
+        slugs = sector_config.get("linkedin_slugs", {})
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
+            futures = {
+                executor.submit(get_trends_data, companies): "trends",
+                executor.submit(get_play_store_data, app_ids, companies): "ratings",
+                executor.submit(get_linkedin_jobs, slugs, companies): "jobs",
+                executor.submit(get_ambitionbox_data, companies): "employer",
+                executor.submit(get_news_data, companies, news_api_key): "news",
+                executor.submit(get_sentiment_data, app_ids, companies): "sentiment"
+            }
             
-            for rev in res:
-                score = rev['score']
-                content = rev.get('content', '') or ''
-                
-                if score >= 4:
-                    pos += 1
-                elif score <= 2:
-                    neg += 1
-                    words = [w for w in re.findall(r'\b[a-zA-Z]{3,}\b', content.lower()) if w not in stopwords]
-                    neg_words.extend(words)
-                else:
-                    neu += 1
+            results = {}
+            for future in concurrent.futures.as_completed(futures):
+                source = futures[future]
+                try:
+                    results[source] = future.result(timeout=15)
+                except Exception as e:
+                    _log_scraper_error(f"Fetcher-{source}", e)
+                    # Fallback handled in the wrapper functions usually, but safety here too
+                    results[source] = {"data": None, "status": "failed", "source_name": source, "error_message": str(e)}
             
-            total = pos + neu + neg
-            if total > 0:
-                top_complaints = [word for word, count in Counter(neg_words).most_common(5)]
-                result_dict[company] = {
-                    "positive_pct": (pos / total) * 100,
-                    "negative_pct": (neg / total) * 100,
-                    "neutral_pct": (neu / total) * 100,
-                    "top_complaints": top_complaints,
-                    "review_count": total
-                }
-        except Exception as e:
-            logger.warning(f"get_review_sentiment failed for '{company}': {e}")
-            
-    return result_dict
+        return SectorData(results)
+
 
