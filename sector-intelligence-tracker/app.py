@@ -27,6 +27,7 @@ from utils.ai_analyst import (
     generate_sector_analysis,
     stream_analyst_response
 )
+from components.analyst_chat import render_analyst_sidebar
 import json
 
 # ---------------------------------------------------------------------------
@@ -829,6 +830,16 @@ else:
                 sentiment_data = sector_data.sentiment
                 
                 status.update(label="Intelligence Sync Complete", state="complete", expanded=False)
+                
+                # --- LIVE ANALYST SIDEBAR ---
+                with st.sidebar:
+                    live_data = {
+                        "ratings": ratings_data,
+                        "jobs": jobs_data,
+                        "news": news_data,
+                        "glassdoor": employer_data
+                    }
+                    render_analyst_sidebar(selected_sector, companies, live_data, SECTOR_META.get(selected_sector, {}))
             except Exception as e:
                 status.update(label="Sync Failed - Using Offline Intelligence", state="error", expanded=False)
                 from data.fallback_data import (
