@@ -286,45 +286,283 @@ div[data-testid="stSelectbox"] label { display: none; }
 # ==============================================================================
 
 if not st.session_state.logged_in:
-    # ---------------- LOGIN PAGE ----------------
+    # ---------------- LOGIN PAGE REDESIGN ----------------
     
-    # Hide sidebar when logged out
-    st.markdown("""<style>[data-testid="stSidebar"] { display: none; }</style>""", unsafe_allow_html=True)
+    # Inject Custom CSS for full-screen premium experience
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Inter:wght@400;500;600&display=swap');
+
+    /* HIDE STREAMLIT CHROME COMPLETELY */
+    header[data-testid="stHeader"], 
+    section[data-testid="stSidebar"], 
+    footer {
+        display: none !important;
+    }
+
+    /* Reset background and padding */
+    .stApp {
+        background-color: #0D1117 !important;
+    }
+
+    [data-testid="stMain"] > div {
+        padding: 0 !important;
+        margin: 0 !important;
+        max-width: 100vw !important;
+    }
+
+    [data-testid="stVerticalBlock"] {
+        gap: 0 !important;
+    }
+
+    /* FULL VIEWPORT SPLIT LAYOUT */
+    .login-wrapper {
+        display: flex;
+        width: 100vw;
+        height: 100vh;
+        overflow: hidden;
+    }
+
+    .left-panel {
+        width: 60vw;
+        height: 100vh;
+        background: radial-gradient(circle at 20% 30%, #1A1F2B 0%, #0D1117 100%);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding-left: 8vw;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .right-panel {
+        width: 40vw;
+        height: 100vh;
+        background-color: #0D1117;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-left: 1px solid #21262D;
+        position: relative;
+    }
+
+    /* WORDMARK & TAGLINE */
+    .wordmark {
+        font-family: 'Manrope', sans-serif;
+        font-weight: 700;
+        font-size: 3.5rem;
+        color: white;
+        margin: 0;
+        letter-spacing: -0.04em;
+        z-index: 10;
+    }
+
+    .tagline {
+        font-family: 'Inter', sans-serif;
+        font-size: 1.4rem;
+        color: #8B949E;
+        max-width: 450px;
+        line-height: 1.5;
+        margin-top: 1rem;
+        z-index: 10;
+    }
+
+    /* FLOATING METRIC CARDS */
+    .floating-card {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.03);
+        backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 20px;
+        width: 200px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        animation: float 8s infinite ease-in-out;
+        z-index: 5;
+    }
+
+    @keyframes float {
+        0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0.6; }
+        50% { transform: translateY(-30px) translateX(10px) rotate(2deg); opacity: 0.9; }
+    }
+
+    .card-1 { top: 15%; right: 15%; animation-delay: 0s; }
+    .card-2 { bottom: 25%; right: 10%; animation-delay: 2s; }
+    .card-3 { top: 45%; right: 30%; animation-delay: 4s; }
+
+    .metric-label { font-size: 0.75rem; color: #8B949E; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; font-family: 'Inter', sans-serif; font-weight: 600; }
+    .metric-value { font-size: 1.5rem; font-weight: 700; color: #378ADD; font-family: 'Manrope', sans-serif; }
+    .metric-delta { font-size: 0.85rem; color: #3FB950; margin-top: 4px; font-family: 'Inter', sans-serif; }
+
+    /* LOGIN CARD STYLING */
+    .login-card {
+        background: white;
+        padding: 3.5rem;
+        border-radius: 32px;
+        width: 100%;
+        max-width: 460px;
+        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
+        animation: slideIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .login-card h2 {
+        font-family: 'Manrope', sans-serif;
+        font-weight: 800;
+        font-size: 2rem;
+        color: #0D1117;
+        margin-bottom: 2.5rem;
+        text-align: left;
+        letter-spacing: -0.02em;
+    }
+
+    /* CUSTOM STREAMLIT ELEMENT OVERRIDES (RIGHT PANEL ONLY) */
+    div[data-testid="stTextInput"] input {
+        background-color: white !important;
+        border: 1px solid #D0D7DE !important;
+        border-radius: 14px !important;
+        color: #0D1117 !important;
+        padding: 1rem 1.2rem !important;
+        font-family: 'Inter', sans-serif !important;
+        font-size: 1rem !important;
+        transition: all 0.2s ease !important;
+    }
+
+    div[data-testid="stTextInput"] input:focus {
+        border-color: #378ADD !important;
+        box-shadow: 0 0 0 4px rgba(55, 138, 221, 0.15) !important;
+    }
+
+    div[data-testid="stTextInput"] label {
+        font-family: 'Inter', sans-serif !important;
+        font-weight: 600 !important;
+        color: #484F58 !important;
+        margin-bottom: 0.6rem !important;
+        font-size: 0.9rem !important;
+    }
+
+    .stButton > button {
+        background: #378ADD !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 14px !important;
+        padding: 1rem !important;
+        font-weight: 700 !important;
+        font-size: 1.1rem !important;
+        font-family: 'Manrope', sans-serif !important;
+        width: 100% !important;
+        margin-top: 2rem !important;
+        box-shadow: 0 8px 24px rgba(55, 138, 221, 0.3) !important;
+        transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+    }
+
+    .stButton > button:hover {
+        background: #2D72B8 !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 12px 32px rgba(55, 138, 221, 0.4) !important;
+    }
+
+    .early-access {
+        text-align: center;
+        margin-top: 2rem;
+        font-size: 0.95rem;
+        color: #8B949E;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .early-access a {
+        color: #378ADD;
+        text-decoration: none;
+        font-weight: 600;
+        margin-left: 4px;
+    }
     
-    colA, colB, colC = st.columns([1, 1.5, 1])
-    with colB:
-        st.markdown("<div class='login-box'>", unsafe_allow_html=True)
-        # Authentic vector geometry logo
-        st.markdown("""
-        <div style='margin: 0 auto 1.5rem auto; width: 64px; height: 64px;'>
-            <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-                <defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" style="stop-color:#B388FF;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#7E57C2;stop-opacity:1" />
-                </linearGradient></defs>
-                <circle cx="40" cy="40" r="30" fill="url(#grad)" opacity="0.8"/>
-                <circle cx="60" cy="60" r="30" fill="#D4E157" opacity="0.9"/>
-                <circle cx="50" cy="50" r="15" fill="#15111B"/>
-            </svg>
+    .error-box {
+        color: #CF222E;
+        background: #FFEBE9;
+        border: 1px solid rgba(207, 34, 46, 0.2);
+        padding: 0.8rem;
+        border-radius: 12px;
+        font-family: 'Inter', sans-serif;
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 1.5rem;
+        text-align: center;
+    }
+    
+    /* Ensure the Streamlit columns take full height */
+    [data-testid="column"] {
+        height: 100vh !important;
+        display: flex !important;
+        flex-direction: column !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Use Streamlit columns for the 60/40 layout
+    col_left, col_right = st.columns([0.6, 0.4], gap="none")
+
+    with col_left:
+        st.markdown(f"""
+        <div class="left-panel">
+            <h1 class="wordmark">NixTio</h1>
+            <p class="tagline">Real-time sector intelligence for India's sharpest operators</p>
+            
+            <!-- Animated Metric Cards -->
+            <div class="floating-card card-1">
+                <div class="metric-label">FinTech Momentum</div>
+                <div class="metric-value">84.2</div>
+                <div class="metric-delta">↑ 12.4%</div>
+            </div>
+            <div class="floating-card card-2">
+                <div class="metric-label">Market Velocity</div>
+                <div class="metric-value">0.92x</div>
+                <div class="metric-delta">↑ 0.05</div>
+            </div>
+            <div class="floating-card card-3">
+                <div class="metric-label">Sentiment Index</div>
+                <div class="metric-value">Strong Buy</div>
+                <div class="metric-delta">↑ Bullish</div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
-        st.markdown("<p class='login-title'>nix<span style='color:#B388FF'>tio</span></p>", unsafe_allow_html=True)
-        st.markdown("<p class='login-subtitle'>Intelligence System Login</p>", unsafe_allow_html=True)
+
+    with col_right:
+        st.markdown('<div class="right-panel">', unsafe_allow_html=True)
+        st.markdown('<div class="login-card">', unsafe_allow_html=True)
+        st.markdown('<h2>Sign in to NixTio</h2>', unsafe_allow_html=True)
         
-        with st.form("login_form"):
-            username = st.text_input("Username", placeholder="admin")
-            password = st.text_input("Password", type="password", placeholder="admin123")
-            submitted = st.form_submit_button("Authenticate Security")
+        # Form for login
+        with st.form("login_form", clear_on_submit=False):
+            email = st.text_input("Email Address", placeholder="name@company.com")
+            password = st.text_input("Password", type="password", placeholder="••••••••")
+            
+            # Error placeholder
+            error_placeholder = st.empty()
+            
+            submitted = st.form_submit_button("Access Dashboard")
             
             if submitted:
-                if username == "admin" and password == "admin123":
+                # Get credentials from secrets
+                valid_creds = st.secrets.get("credentials", {})
+                valid_email = valid_creds.get("email", "admin@nixtio.com")
+                valid_password = valid_creds.get("password", "nixtio_secure_2024")
+                
+                if email == valid_email and password == valid_password:
                     st.session_state.logged_in = True
                     st.rerun()
                 else:
-                    st.error("Invalid credentials.")
-        
-        st.markdown("<p style='font-size:0.75rem; color:#8E8D92; margin-top:2rem'>Demo pass: admin / admin123</p>", unsafe_allow_html=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+                    error_placeholder.markdown('<div class="error-box">Incorrect credentials</div>', unsafe_allow_html=True)
+
+        st.markdown("""
+        <p class="early-access">Don't have an account? <a href="#">Request early access →</a></p>
+        """, unsafe_allow_html=True)
+        st.markdown('</div></div>', unsafe_allow_html=True)
+
         
 else:
     # ---------------- MAIN APPLICATION ----------------
