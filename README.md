@@ -102,8 +102,8 @@ sector-intelligence-tracker/
 ### Installation
  
 ```bash
-git clone https://github.com/MrinmoyBANIKYA/Competitor_analysis_Intelligence.git
-cd Competitor_analysis_Intelligence/sector-intelligence-tracker
+git clone https://github.com/MrinmoyBANIKYA/NixTio--SectorAnalysis-.git
+cd NixTio--SectorAnalysis-/sector-intelligence-tracker
  
 pip install -r requirements.txt
 ```
