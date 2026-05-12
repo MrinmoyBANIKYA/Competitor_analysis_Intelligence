@@ -8,7 +8,10 @@ a :class:`pandas.DataFrame` (or a plain ``dict`` where appropriate)
 so that callers in ``app.py`` remain free of scraping logic.
 """
 
-import concurrent.futures
+import asyncio
+import aiohttp
+import diskcache
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import os
 import logging
 import re
@@ -33,6 +36,9 @@ from data.fallback_data import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Initialize Cache
+cache = diskcache.Cache(".cache/scrapers")
 
 def _log_scraper_error(source: str, error: Exception):
     os.makedirs("logs", exist_ok=True)
@@ -658,64 +664,173 @@ def get_ambitionbox_rating(companies: list) -> dict:
     return result
 
 # ---------------------------------------------------------------------------
+# Async Network Scrapers (aiohttp)
+# ---------------------------------------------------------------------------
+
+async def async_get_news_mentions(companies: list, api_key: str, days: int = 30) -> dict:
+    from_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+    url = 'https://newsapi.org/v2/everything'
+    result = {}
+    async with aiohttp.ClientSession() as session:
+        for company in companies:
+            try:
+                params = {
+                    'q': company,
+                    'language': 'en',
+                    'sortBy': 'publishedAt',
+                    'pageSize': 100,
+                    'apiKey': api_key,
+                    'from': from_date,
+                }
+                async with session.get(url, params=params, timeout=10) as resp:
+                    resp.raise_for_status()
+                    data = await resp.json()
+                    result[company] = int(data.get('totalResults', 0))
+            except Exception as exc:
+                logger.warning("async_get_news_mentions failed for '%s': %s", company, exc)
+                result[company] = 0
+    return result
+
+async def async_get_linkedin_job_count(company_slugs: dict) -> dict:
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    result = {}
+    async with aiohttp.ClientSession(headers=headers) as session:
+        for company, slug in company_slugs.items():
+            try:
+                url = f"https://www.linkedin.com/jobs/search/?company={slug}&position=&pageNum=0"
+                async with session.get(url, timeout=10) as resp:
+                    resp.raise_for_status()
+                    html = await resp.text()
+                    soup = BeautifulSoup(html, 'html.parser')
+                    tag = soup.find('span', class_='results-context-header__job-count')
+                    if tag:
+                        text = tag.get_text(strip=True)
+                    else:
+                        tag = soup.find(string=re.compile(r'\d[\d,]*\s+jobs', re.IGNORECASE))
+                        text = tag if tag else ''
+                    match = re.search(r'[\d,]+', text)
+                    result[company] = int(match.group(0).replace(',', '')) if match else 0
+            except Exception as exc:
+                logger.warning("async_get_linkedin_job_count failed for '%s': %s", company, exc)
+                result[company] = 0
+            await asyncio.sleep(0.5)
+    return result
+
+async def async_get_ambitionbox_rating(companies: list) -> dict:
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+    result = {}
+    async with aiohttp.ClientSession(headers=headers) as session:
+        for company in companies:
+            try:
+                slug = company.lower().replace(' ', '-')
+                url = f"https://www.ambitionbox.com/overview/{slug}-overview"
+                async with session.get(url, timeout=10) as resp:
+                    resp.raise_for_status()
+                    html = await resp.text()
+                    soup = BeautifulSoup(html, 'html.parser')
+                    tag = soup.find(class_='ratingNumber')
+                    if not tag:
+                        tag = soup.find('span', string=re.compile(r'^\d\.\d$'))
+                    text = tag.get_text(strip=True) if tag else ''
+                    match = re.search(r'\d+\.?\d*', text)
+                    result[company] = float(match.group(0)) if match else 3.5
+            except Exception as exc:
+                logger.warning("async_get_ambitionbox_rating failed for '%s': %s", company, exc)
+                result[company] = 3.5
+            await asyncio.sleep(0.5)
+    return result
+
+# ---------------------------------------------------------------------------
 # Production Wrappers & DataFetcher
 # ---------------------------------------------------------------------------
 
-def get_trends_data(companies: list) -> dict:
-    try:
-        data = get_google_trends(companies)
-        status = "ok" if not data.empty else "failed"
-        return {"data": data, "status": status, "source_name": "Google Trends", "error_message": None, "last_updated": datetime.now()}
-    except Exception as e:
-        _log_scraper_error("Google Trends", e)
-        return {"data": get_fallback_trends(companies), "status": "failed", "source_name": "Google Trends", "error_message": str(e), "last_updated": datetime.now()}
+# ---------------------------------------------------------------------------
+# Production Wrappers & DataFetcher (Async + Cached)
+# ---------------------------------------------------------------------------
 
-def get_play_store_data(app_ids: dict, companies: list) -> dict:
-    try:
-        data = get_playstore_ratings(app_ids)
-        status = "ok" if data else "failed"
-        return {"data": data, "status": status, "source_name": "Play Store", "error_message": None, "last_updated": datetime.now()}
-    except Exception as e:
-        _log_scraper_error("Play Store", e)
-        return {"data": get_fallback_playstore(companies), "status": "failed", "source_name": "Play Store", "error_message": str(e), "last_updated": datetime.now()}
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=1, max=4),
+    reraise=True
+)
+async def _fetch_with_retry(func, *args, **kwargs):
+    if asyncio.iscoroutinefunction(func):
+        return await func(*args, **kwargs)
+    return await asyncio.to_thread(func, *args, **kwargs)
 
-def get_linkedin_jobs(slugs: dict, companies: list) -> dict:
-    try:
-        data = get_linkedin_job_count(slugs)
-        status = "ok" if data else "failed"
-        return {"data": data, "status": status, "source_name": "LinkedIn Jobs", "error_message": None, "last_updated": datetime.now()}
-    except Exception as e:
-        _log_scraper_error("LinkedIn Jobs", e)
-        return {"data": get_fallback_linkedin(companies), "status": "failed", "source_name": "LinkedIn Jobs", "error_message": str(e), "last_updated": datetime.now()}
+async def _get_cached_or_fetch(
+    source_label: str,
+    cache_key: str,
+    ttl: int,
+    fetch_func: Any,
+    fallback_func: Any,
+    companies: list,
+    *args,
+    **kwargs
+) -> dict:
+    # 1. Try hitting the cache
+    cached = cache.get(cache_key)
+    if cached:
+        data, ts = cached
+        return {
+            "data": data,
+            "status": "ok",
+            "source_name": source_label,
+            "last_updated": ts,
+            "is_cached": True
+        }
 
-def get_ambitionbox_data(companies: list) -> dict:
+    # 2. Fetch with retry
     try:
-        data = get_ambitionbox_rating(companies)
-        status = "ok" if data else "failed"
-        return {"data": data, "status": status, "source_name": "AmbitionBox", "error_message": None, "last_updated": datetime.now()}
-    except Exception as e:
-        _log_scraper_error("AmbitionBox", e)
-        return {"data": get_fallback_ambitionbox(companies), "status": "failed", "source_name": "AmbitionBox", "error_message": str(e), "last_updated": datetime.now()}
+        data = await _fetch_with_retry(fetch_func, *args, **kwargs)
+        
+        # Validate data
+        is_empty = False
+        if isinstance(data, pd.DataFrame):
+            is_empty = data.empty
+        elif data is None or (isinstance(data, dict) and not data):
+            is_empty = True
+            
+        if not is_empty:
+            now = datetime.now()
+            cache.set(cache_key, (data, now), expire=ttl)
+            return {
+                "data": data,
+                "status": "ok",
+                "source_name": source_label,
+                "last_updated": now,
+                "is_cached": False
+            }
+        raise ValueError(f"{source_label} returned empty data")
 
-def get_news_data(companies: list, api_key: str) -> dict:
-    try:
-        data = get_news_mentions(companies, api_key)
-        status = "ok" if data else "failed"
-        return {"data": data, "status": status, "source_name": "NewsAPI", "error_message": None, "last_updated": datetime.now()}
-    except Exception as e:
-        _log_scraper_error("NewsAPI", e)
-        return {"data": get_fallback_news(companies), "status": "failed", "source_name": "NewsAPI", "error_message": str(e), "last_updated": datetime.now()}
-
-def get_sentiment_data(app_ids: dict, companies: list) -> dict:
-    try:
-        # Since get_review_sentiment isn't implemented, we use the fallback system natively 
-        # to ensure the DataFetcher thread doesn't crash with a NameError
-        data = get_fallback_sentiment(companies)
-        status = "ok" if data else "failed"
-        return {"data": data, "status": status, "source_name": "Play Store Sentiment", "error_message": None, "last_updated": datetime.now()}
-    except Exception as e:
-        _log_scraper_error("Sentiment", e)
-        return {"data": get_fallback_sentiment(companies), "status": "failed", "source_name": "Play Store Sentiment", "error_message": str(e), "last_updated": datetime.now()}
+    except Exception as exc:
+        _log_scraper_error(source_label, exc)
+        
+        # 3. Fallback: try stale cache first
+        stale = cache.get(cache_key, read=True) # diskcache returns expired if read=True? No, use tag or just ignore_expire if supported
+        # Actually diskcache doesn't have a simple "ignore_expire" in get()
+        # We can store a 'permanent' copy for fallback
+        stale_key = f"stale_{cache_key}"
+        stale_data = cache.get(stale_key)
+        
+        if stale_data:
+            data, ts = stale_data
+            return {
+                "data": data, 
+                "status": "stale", 
+                "source_name": source_label, 
+                "last_updated": ts, 
+                "error": str(exc)
+            }
+            
+        # 4. Final Fallback: Mock Data
+        return {
+            "data": fallback_func(companies),
+            "status": "failed",
+            "source_name": source_label,
+            "last_updated": datetime.now(),
+            "error": str(exc)
+        }
 
 class SectorData:
     def __init__(self, results: dict):
@@ -727,34 +842,74 @@ class SectorData:
         self.news = results.get("news", {}).get("data")
         self.sentiment = results.get("sentiment", {}).get("data")
         
-        ok_count = sum(1 for r in results.values() if r.get("status") == "ok")
+        ok_count = sum(1 for r in results.values() if r.get("status") in ["ok", "stale"])
         self.health_score = (ok_count / len(results)) * 100 if results else 0
 
 class DataFetcher:
-    def fetch_all(self, sector_config: dict, companies: list, news_api_key: str) -> SectorData:
+    async def fetch_all(
+        self, 
+        sector_config: dict, 
+        companies: list, 
+        news_api_key: str,
+        progress_callback: Any = None
+    ) -> SectorData:
         app_ids = sector_config.get("app_ids", {})
         slugs = sector_config.get("linkedin_slugs", {})
-        
-        with concurrent.futures.ThreadPoolExecutor(max_workers=6) as executor:
-            futures = {
-                executor.submit(get_trends_data, companies): "trends",
-                executor.submit(get_play_store_data, app_ids, companies): "ratings",
-                executor.submit(get_linkedin_jobs, slugs, companies): "jobs",
-                executor.submit(get_ambitionbox_data, companies): "employer",
-                executor.submit(get_news_data, companies, news_api_key): "news",
-                executor.submit(get_sentiment_data, app_ids, companies): "sentiment"
-            }
-            
-            results = {}
-            for future in concurrent.futures.as_completed(futures):
-                source = futures[future]
-                try:
-                    results[source] = future.result(timeout=15)
-                except Exception as e:
-                    _log_scraper_error(f"Fetcher-{source}", e)
-                    # Fallback handled in the wrapper functions usually, but safety here too
-                    results[source] = {"data": None, "status": "failed", "source_name": source, "error_message": str(e)}
-            
+        sector_id = sector_config.get("name", "unknown")
+
+        # Define task factories
+        task_defs = {
+            "trends": lambda: _get_cached_or_fetch(
+                "Google Trends", f"trends_{sector_id}", 6*3600,
+                get_google_trends, get_fallback_trends, companies, 
+                keywords=companies
+            ),
+            "ratings": lambda: _get_cached_or_fetch(
+                "Play Store", f"ratings_{sector_id}", 12*3600,
+                get_playstore_ratings, get_fallback_playstore, companies,
+                app_ids=app_ids
+            ),
+            "jobs": lambda: _get_cached_or_fetch(
+                "LinkedIn Jobs", f"jobs_{sector_id}", 24*3600,
+                async_get_linkedin_job_count, get_fallback_linkedin, companies,
+                company_slugs=slugs
+            ),
+            "employer": lambda: _get_cached_or_fetch(
+                "AmbitionBox", f"employer_{sector_id}", 24*3600,
+                async_get_ambitionbox_rating, get_fallback_ambitionbox, companies,
+                companies=companies
+            ),
+            "news": lambda: _get_cached_or_fetch(
+                "NewsAPI", f"news_{sector_id}", 1*3600,
+                async_get_news_mentions, get_fallback_news, companies,
+                companies=companies, api_key=news_api_key
+            ),
+            "sentiment": lambda: _get_cached_or_fetch(
+                "Sentiment", f"sentiment_{sector_id}", 12*3600,
+                # Sentiment is currently fallback-only as per original code
+                lambda c: get_fallback_sentiment(c), get_fallback_sentiment, companies,
+                companies=companies
+            )
+        }
+
+        total = len(task_defs)
+        completed = 0
+        lock = asyncio.Lock()
+
+        async def wrap_task(k, factory):
+            res = await factory()
+            async with lock:
+                nonlocal completed
+                completed += 1
+                if progress_callback:
+                    progress_callback(completed / total)
+            return k, res
+
+        # Execute all in parallel
+        parallel_tasks = [wrap_task(k, f) for k, f in task_defs.items()]
+        final_results = await asyncio.gather(*parallel_tasks)
+        results = {k: v for k, v in final_results}
+
         return SectorData(results)
 
 

@@ -610,8 +610,7 @@ else:
                 st.session_state.onboarded = True
                 st.rerun()
 
-    @st.cache_data(ttl=3600, show_spinner=False)
-    def cached_fetch_sector_data(sector_key: str, news_api_key: str, demo_mode: bool = False):
+    def fetch_sector_data_with_progress(sector_key: str, news_api_key: str, demo_mode: bool = False):
         if demo_mode:
             from data.fallback_data import (
                 get_fallback_trends, get_fallback_playstore, get_fallback_linkedin, 
@@ -629,10 +628,31 @@ else:
             }
             return SectorData(results)
             
+        progress_bar = st.progress(0, text="Initializing async signal collection...")
+        
+        def update_progress(val):
+            progress_bar.progress(val, text=f"Collected {int(val*100)}% of sector signals...")
+
         fetcher = DataFetcher()
         sector_config = SECTORS[sector_key]
         companies = sector_config["companies"]
-        return fetcher.fetch_all(sector_config, companies, news_api_key)
+        
+        # Run async bridge
+        try:
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            data = loop.run_until_complete(fetcher.fetch_all(
+                sector_config, 
+                companies, 
+                news_api_key, 
+                progress_callback=update_progress
+            ))
+            loop.close()
+            progress_bar.empty()
+            return data
+        except Exception as e:
+            st.error(f"Intelligence collection failed: {str(e)}")
+            return SectorData({})
 
     def render_data_health_banner(health_score):
         if health_score >= 100:
@@ -814,37 +834,31 @@ else:
         companies = sector_config["companies"]
         cmap = color_map_for(companies)
 
-        with st.status("Syncing intelligence data...", expanded=True) as status:
-            st.write("Initializing secure parallel fetcher...")
-            render_skeleton_metrics()
+        try:
+            sector_data = fetch_sector_data_with_progress(selected_sector, NEWS_API_KEY, demo_mode=st.session_state.demo_mode)
             
-            try:
-                sector_data = cached_fetch_sector_data(selected_sector, NEWS_API_KEY, demo_mode=st.session_state.demo_mode)
-                
-                # Unpack for easier access in the app
-                ratings_data = sector_data.ratings
-                trends_df = sector_data.trends
-                news_data = sector_data.news
-                jobs_data = sector_data.jobs
-                employer_data = sector_data.employer
-                sentiment_data = sector_data.sentiment
-                
-                status.update(label="Intelligence Sync Complete", state="complete", expanded=False)
-                
-            except Exception as e:
-                status.update(label="Sync Failed - Using Offline Intelligence", state="error", expanded=False)
-                from data.fallback_data import (
-                    get_fallback_trends, get_fallback_playstore, get_fallback_linkedin, 
-                    get_fallback_ambitionbox, get_fallback_news, get_fallback_sentiment
-                )
-                ratings_data = get_fallback_playstore(companies)
-                trends_df = get_fallback_trends(companies)
-                news_data = get_fallback_news(companies)
-                jobs_data = get_fallback_linkedin(companies)
-                employer_data = get_fallback_ambitionbox(companies)
-                sentiment_data = get_fallback_sentiment(companies)
-                sector_data = SectorData({"error": {"status": "failed"}}) # Minimal mock for health score
-                sector_data.health_score = 0
+            # Unpack for easier access in the app
+            ratings_data = sector_data.ratings
+            trends_df = sector_data.trends
+            news_data = sector_data.news
+            jobs_data = sector_data.jobs
+            employer_data = sector_data.employer
+            sentiment_data = sector_data.sentiment
+            
+        except Exception as e:
+            st.error(f"Intelligence collection failed: {str(e)}")
+            from data.fallback_data import (
+                get_fallback_trends, get_fallback_playstore, get_fallback_linkedin, 
+                get_fallback_ambitionbox, get_fallback_news, get_fallback_sentiment
+            )
+            ratings_data = get_fallback_playstore(companies)
+            trends_df = get_fallback_trends(companies)
+            news_data = get_fallback_news(companies)
+            jobs_data = get_fallback_linkedin(companies)
+            employer_data = get_fallback_ambitionbox(companies)
+            sentiment_data = get_fallback_sentiment(companies)
+            sector_data = SectorData({})
+            sector_data.health_score = 0
 
         # --- GLOBAL MOMENTUM SCORE CALCULATION ---
         trend_score = trends_df.mean().mean() if not trends_df.empty else 0
