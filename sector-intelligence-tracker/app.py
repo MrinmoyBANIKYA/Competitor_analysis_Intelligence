@@ -628,30 +628,40 @@ else:
             }
             return SectorData(results)
             
-        progress_bar = st.progress(0, text="Initializing async signal collection...")
+        progress_bar = st.progress(0, text="Connecting to NixTio Intelligence API...")
         
-        def update_progress(val):
-            progress_bar.progress(val, text=f"Collected {int(val*100)}% of sector signals...")
-
-        fetcher = DataFetcher()
-        sector_config = SECTORS[sector_key]
-        companies = sector_config["companies"]
-        
-        # Run async bridge
         try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            data = loop.run_until_complete(fetcher.fetch_all(
-                sector_config, 
-                companies, 
-                news_api_key, 
-                progress_callback=update_progress
-            ))
-            loop.close()
-            progress_bar.empty()
-            return data
+            import httpx
+            api_url = "http://localhost:8000/analyze" # Should be configurable
+            
+            with httpx.Client(timeout=120.0) as client:
+                progress_bar.progress(0.2, text="Requesting intelligence analysis...")
+                resp = client.post(
+                    api_url,
+                    json={"sector": sector_key, "companies": SECTORS[sector_key]["companies"]}
+                )
+                resp.raise_for_status()
+                progress_bar.progress(0.8, text="Parsing intelligence response...")
+                results = resp.json()
+                
+                # Reconstruct DataFrames where necessary
+                for key, val in results.items():
+                    if key == "trends" and val.get("data"):
+                        df = pd.DataFrame(val["data"])
+                        if "date" in df.columns:
+                            df.set_index("date", inplace=True)
+                        results[key]["data"] = df
+                    elif isinstance(val.get("data"), list):
+                        results[key]["data"] = pd.DataFrame(val["data"])
+
+                progress_bar.progress(1.0, text="Intelligence Sync Complete")
+                time.sleep(0.5)
+                progress_bar.empty()
+                return SectorData(results)
+                
         except Exception as e:
-            st.error(f"Intelligence collection failed: {str(e)}")
+            st.error(f"Intelligence API connection failed: {str(e)}")
+            st.info("Ensure the FastAPI backend is running on http://localhost:8000")
             return SectorData({})
 
     def render_data_health_banner(health_score):

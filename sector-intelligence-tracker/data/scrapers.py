@@ -764,7 +764,7 @@ async def _get_cached_or_fetch(
     ttl: int,
     fetch_func: Any,
     fallback_func: Any,
-    companies: list,
+    companies_for_fallback: list,
     *args,
     **kwargs
 ) -> dict:
@@ -807,9 +807,6 @@ async def _get_cached_or_fetch(
         _log_scraper_error(source_label, exc)
         
         # 3. Fallback: try stale cache first
-        stale = cache.get(cache_key, read=True) # diskcache returns expired if read=True? No, use tag or just ignore_expire if supported
-        # Actually diskcache doesn't have a simple "ignore_expire" in get()
-        # We can store a 'permanent' copy for fallback
         stale_key = f"stale_{cache_key}"
         stale_data = cache.get(stale_key)
         
@@ -825,7 +822,7 @@ async def _get_cached_or_fetch(
             
         # 4. Final Fallback: Mock Data
         return {
-            "data": fallback_func(companies),
+            "data": fallback_func(companies_for_fallback),
             "status": "failed",
             "source_name": source_label,
             "last_updated": datetime.now(),
@@ -886,7 +883,6 @@ class DataFetcher:
             ),
             "sentiment": lambda: _get_cached_or_fetch(
                 "Sentiment", f"sentiment_{sector_id}", 12*3600,
-                # Sentiment is currently fallback-only as per original code
                 lambda c: get_fallback_sentiment(c), get_fallback_sentiment, companies,
                 companies=companies
             )
