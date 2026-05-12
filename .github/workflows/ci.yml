@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r sector-intelligence-tracker/requirements.txt
+          pip install flake8 black pytest pytest-cov
+
+      - name: Lint with flake8
+        run: |
+          flake8 . --count --max-line-length=120 --statistics
+
+      - name: Check formatting with black
+        run: |
+          black --check .
+
+      - name: Run tests with pytest
+        run: |
+          pytest tests/ --cov=sector-intelligence-tracker --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: true
+
+  deploy:
+    needs: ci
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Streamlit
+        run: |
+          curl -X POST https://share.streamlit.io/api/v1/deploy \
+            -H "Authorization: Bearer ${{ secrets.STREAMLIT_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"repository": "${{ github.repository }}", "branch": "main"}'

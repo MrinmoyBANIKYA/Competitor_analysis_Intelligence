@@ -6,6 +6,11 @@
 [![Built with Streamlit](https://img.shields.io/badge/Built%20with-Streamlit-FF4B4B?logo=streamlit)](https://streamlit.io)
 [![Powered by Gemini AI](https://img.shields.io/badge/Powered%20by-Gemini%20AI-4285F4?logo=google)](https://ai.google.dev)
 [![Status](https://img.shields.io/badge/Status-Live%20%26%20Deployed-brightgreen)]()
+
+[![CI](https://img.shields.io/github/actions/workflow/status/MrinmoyBANIKYA/NixTio--SectorAnalysis-/ci.yml?branch=main)](https://github.com/MrinmoyBANIKYA/NixTio--SectorAnalysis-/actions)
+[![Coverage](https://img.shields.io/codecov/c/github/MrinmoyBANIKYA/NixTio--SectorAnalysis-)](https://codecov.io/gh/MrinmoyBANIKYA/NixTio--SectorAnalysis-)
+[![Python](https://img.shields.io/badge/python-3.11-blue)](https://www.python.org/downloads/release/python-3110/)
+[![License](https://img.shields.io/github/license/MrinmoyBANIKYA/NixTio--SectorAnalysis-)](LICENSE)
  
 ---
  
