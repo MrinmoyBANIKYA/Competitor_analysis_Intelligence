@@ -1,1 +1,3 @@
 [2026-05-14 23:47:43] Sentiment ERROR: DataFetcher.fetch_all.<locals>.<lambda>.<locals>.<lambda>() got an unexpected keyword argument 'companies'
+[2026-05-14 23:52:09] Sentiment ERROR: DataFetcher.fetch_all.<locals>.<lambda>.<locals>.<lambda>() got an unexpected keyword argument 'companies'
+[2026-05-14 23:52:47] Sentiment ERROR: DataFetcher.fetch_all.<locals>.<lambda>.<locals>.<lambda>() got an unexpected keyword argument 'companies'
