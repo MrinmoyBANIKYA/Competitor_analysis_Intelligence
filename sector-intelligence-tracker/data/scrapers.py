@@ -14,14 +14,11 @@ import diskcache
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import os
 import logging
-import re
-import time
-import urllib.parse
+import time, re
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
-
-import requests
 import pandas as pd
+import requests
 from bs4 import BeautifulSoup
 from pytrends.request import TrendReq
 from google_play_scraper import app as gps_app, reviews as gps_reviews, Sort
@@ -427,24 +424,9 @@ def fetch_web_traffic_batch(domains: dict[str, str]) -> pd.DataFrame:
 # ---------------------------------------------------------------------------
 
 def get_playstore_ratings(app_ids: dict) -> dict:
-    """
-    Fetch Play Store rating and number-of-ratings for each app.
-
-    Parameters
-    ----------
-    app_ids : dict
-        Mapping of ``{company_name: play_store_app_id}``.
-
-    Returns
-    -------
-    dict
-        ``{company_name: {"rating": float, "num_ratings": int}}``
-    """
     from google_play_scraper import app as gplay_app
-
     if not app_ids:
         return {}
-
     result = {}
     for company_name, app_id in app_ids.items():
         try:
@@ -453,8 +435,7 @@ def get_playstore_ratings(app_ids: dict) -> dict:
                 "rating": float(info.get("score") or 0.0),
                 "num_ratings": int(info.get("ratings") or 0),
             }
-        except Exception as exc:
-            logger.warning("get_playstore_ratings failed for %s (%s): %s", company_name, app_id, exc)
+        except Exception:
             result[company_name] = {"rating": 0.0, "num_ratings": 0}
     return result
 
@@ -463,88 +444,36 @@ def get_playstore_ratings(app_ids: dict) -> dict:
 # Google Trends  (exact-spec version)
 # ---------------------------------------------------------------------------
 
-def get_google_trends(keywords: list, timeframe: str = 'today 12-m') -> pd.DataFrame:
-    """
-    Fetch Google Trends interest-over-time for up to any number of keywords,
-    automatically batching into groups of 5 and merging.
-
-    Parameters
-    ----------
-    keywords : list
-        Search terms to compare.
-    timeframe : str, optional
-        Pytrends-compatible timeframe string, by default ``'today 12-m'``.
-
-    Returns
-    -------
-    pd.DataFrame
-        Dates as index, keywords as columns.
-    """
-    try:
-        from pytrends.request import TrendReq
-        pytrends = TrendReq(hl='en-IN', tz=330)
-
-        if len(keywords) <= 5:
-            pytrends.build_payload(keywords[:5], timeframe=timeframe, geo='IN')
-            return pytrends.interest_over_time()
-
-        # Batch into groups of 5 and merge on index
-        batches = [keywords[i:i + 5] for i in range(0, len(keywords), 5)]
-        merged: pd.DataFrame = pd.DataFrame()
-        for batch in batches:
-            pytrends.build_payload(batch, timeframe=timeframe, geo='IN')
-            df = pytrends.interest_over_time()
-            if df.empty:
-                continue
-            if merged.empty:
-                merged = df
-            else:
-                merged = merged.merge(df, left_index=True, right_index=True, how='outer')
-        return merged
-    except Exception as e:
-        logger.warning(f"get_google_trends failed: {e}. Falling back to mock data.")
-        import datetime
-        import random
-        dates = [datetime.datetime.today() - datetime.timedelta(days=x) for x in range(365, 0, -7)]
-        mock_data = {"date": dates}
-        for kw in keywords:
-            rng = random.Random(kw)
-            val = rng.randint(30, 70)
-            walk = []
-            for _ in dates:
-                val = max(10, min(100, val + rng.randint(-15, 15)))
-                walk.append(val)
-            mock_data[kw] = walk
-        df_mock = pd.DataFrame(mock_data).set_index("date")
-        df_mock["isPartial"] = False
-        return df_mock
+def get_google_trends(keywords: list, timeframe='today 12-m') -> pd.DataFrame:
+    from pytrends.request import TrendReq
+    pytrends = TrendReq(hl='en-IN', tz=330)
+    
+    if len(keywords) <= 5:
+        pytrends.build_payload(keywords[:5], timeframe=timeframe, geo='IN')
+        return pytrends.interest_over_time()
+    
+    # Batch into groups of 5 and merge on index
+    batches = [keywords[i:i + 5] for i in range(0, len(keywords), 5)]
+    merged = pd.DataFrame()
+    for batch in batches:
+        pytrends.build_payload(batch, timeframe=timeframe, geo='IN')
+        df = pytrends.interest_over_time()
+        if df.empty:
+            continue
+        if merged.empty:
+            merged = df
+        else:
+            merged = merged.merge(df, left_index=True, right_index=True, how='outer')
+    return merged
 
 
 # ---------------------------------------------------------------------------
 # News mentions via NewsAPI v2
 # ---------------------------------------------------------------------------
 
-def get_news_mentions(companies: list, api_key: str, days: int = 30) -> dict:
-    """
-    Count recent news articles mentioning each company via the NewsAPI v2
-    ``/v2/everything`` endpoint.
-
-    Parameters
-    ----------
-    companies : list
-        Company names to query.
-    api_key : str
-        NewsAPI key.
-    days : int, optional
-        Lookback window in days, by default ``30``.
-
-    Returns
-    -------
-    dict
-        ``{company: article_count (int)}``
-    """
-    from_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+def get_news_mentions(companies: list, api_key: str, days=30) -> dict:
     url = 'https://newsapi.org/v2/everything'
+    from_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
     result = {}
     for company in companies:
         try:
@@ -554,14 +483,13 @@ def get_news_mentions(companies: list, api_key: str, days: int = 30) -> dict:
                 'sortBy': 'publishedAt',
                 'pageSize': 100,
                 'apiKey': api_key,
-                'from': from_date,
+                'from': from_date
             }
             resp = requests.get(url, params=params, timeout=10)
             resp.raise_for_status()
             data = resp.json()
             result[company] = int(data.get('totalResults', 0))
-        except Exception as exc:
-            logger.warning("get_news_mentions failed for '%s': %s", company, exc)
+        except Exception:
             result[company] = 0
     return result
 
@@ -571,22 +499,7 @@ def get_news_mentions(companies: list, api_key: str, days: int = 30) -> dict:
 # ---------------------------------------------------------------------------
 
 def get_linkedin_job_count(company_slugs: dict) -> dict:
-    """
-    Scrape the approximate open job count for each company from LinkedIn.
-
-    Parameters
-    ----------
-    company_slugs : dict
-        Mapping of ``{company_name: linkedin_slug}``.
-
-    Returns
-    -------
-    dict
-        ``{company: job_count (int)}``
-    """
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-    }
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
     result = {}
     for company, slug in company_slugs.items():
         try:
@@ -594,23 +507,16 @@ def get_linkedin_job_count(company_slugs: dict) -> dict:
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
             soup = BeautifulSoup(resp.text, 'html.parser')
-
-            # Try the specific header span first
             tag = soup.find('span', class_='results-context-header__job-count')
             if tag:
                 text = tag.get_text(strip=True)
             else:
-                # Fallback: any element whose text contains " jobs"
                 tag = soup.find(string=re.compile(r'\d[\d,]*\s+jobs', re.IGNORECASE))
                 text = tag if tag else ''
-
             match = re.search(r'[\d,]+', text)
-            if match:
-                result[company] = int(match.group(0).replace(',', ''))
-            else:
-                result[company] = 0
-        except Exception as exc:
-            logger.warning("get_linkedin_job_count failed for '%s': %s", company, exc)
+            job_count = int(match.group(0).replace(',', '')) if match else 0
+            result[company] = job_count
+        except Exception:
             result[company] = 0
         time.sleep(1)
     return result
@@ -621,44 +527,22 @@ def get_linkedin_job_count(company_slugs: dict) -> dict:
 # ---------------------------------------------------------------------------
 
 def get_ambitionbox_rating(companies: list) -> dict:
-    """
-    Scrape employee ratings from AmbitionBox for each company.
-
-    Parameters
-    ----------
-    companies : list
-        Company names to look up.
-
-    Returns
-    -------
-    dict
-        ``{company: rating (float)}``.  Falls back to ``3.5`` on failure.
-    """
     result = {}
     for company in companies:
         try:
             slug = company.lower().replace(' ', '-')
             url = f"https://www.ambitionbox.com/overview/{slug}-overview"
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
             resp = requests.get(url, headers=headers, timeout=10)
             resp.raise_for_status()
             soup = BeautifulSoup(resp.text, 'html.parser')
-
-            # Primary target: element with class "ratingNumber"
             tag = soup.find(class_='ratingNumber')
-            if tag:
-                text = tag.get_text(strip=True)
-            else:
-                # Fallback: any span whose text looks like a rating (e.g. "3.9")
+            if not tag:
                 tag = soup.find('span', string=re.compile(r'^\d\.\d$'))
-                text = tag.get_text(strip=True) if tag else ''
-
+            text = tag.get_text(strip=True) if tag else ''
             match = re.search(r'\d+\.?\d*', text)
             result[company] = float(match.group(0)) if match else 3.5
-        except Exception as exc:
-            logger.warning("get_ambitionbox_rating failed for '%s': %s", company, exc)
+        except Exception:
             result[company] = 3.5
         time.sleep(2)
     return result
