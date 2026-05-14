@@ -11,16 +11,23 @@ from datetime import datetime
 import pandas as pd
 from sqlalchemy.ext.asyncio import AsyncSession
 
+# Enable LangSmith Tracing
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+if not os.environ.get("LANGCHAIN_API_KEY"):
+    # Note: User should provide this in environment
+    print("Warning: LANGCHAIN_API_KEY not set. Tracing may not work.")
+
 # Import scrapers and DataFetcher
 from data.scrapers import DataFetcher, SectorData
 from data.sectors import SECTORS
 from db.database import get_db
 from db import crud
+from ai.chain import get_intel_chain
 
 app = FastAPI(
     title="Sector Intelligence API",
-    description="Backend API for sector analysis and report generation with DB persistence",
-    version="1.1.0"
+    description="Backend API for sector analysis and report generation with structured AI chains",
+    version="1.2.0"
 )
 
 # CORS Middleware
@@ -39,7 +46,7 @@ app.add_middleware(
 # Start time for uptime calculation
 start_time = time.time()
 
-# Job store for background tasks (consider moving to Redis/DB for production)
+# Job store for background tasks
 jobs = {}
 
 # --- Pydantic Models ---
@@ -82,7 +89,7 @@ class JobResponse(BaseModel):
 async def health():
     return {
         "status": "ok",
-        "version": "1.1.0",
+        "version": "1.2.0",
         "uptime": time.time() - start_time
     }
 
@@ -143,7 +150,7 @@ async def get_report_metadata(sector: str, db: AsyncSession = Depends(get_db)):
             "gemini_summary": db_report.gemini_summary
         }
     
-    # Fallback to file check if not in DB
+    # Fallback to file check
     report_path = f"reports/{sector.lower().replace(' ', '_')}_report.pdf"
     if os.path.exists(report_path):
         return {
@@ -158,8 +165,15 @@ async def get_report_metadata(sector: str, db: AsyncSession = Depends(get_db)):
 async def generate_pdf_task(job_id: str, sector: str, companies: List[str], data: Dict[str, Any], db_session_factory: Any):
     jobs[job_id] = "running"
     try:
-        # Simulate PDF generation
-        await asyncio.sleep(5)
+        # Step 1: Generate AI Insights using the structured LangChain chain
+        intel_process = get_intel_chain()
+        ai_result = await intel_process(raw_data=data, sector_context=f"Focus on {sector} sector with companies {', '.join(companies)}")
+        
+        # Extract executive summary for the DB
+        summary = ai_result.get("analysis", {}).get("executive_summary", "Summary generation failed.")
+        
+        # Simulate PDF generation (in real app, use fpdf2 with ai_result)
+        await asyncio.sleep(2)
         
         # Persistence: Save report metadata
         async with db_session_factory() as db:
@@ -168,7 +182,7 @@ async def generate_pdf_task(job_id: str, sector: str, companies: List[str], data
                 db, 
                 sector_id=db_sector.id,
                 pdf_path=f"reports/{sector.lower().replace(' ', '_')}_report.pdf",
-                gemini_summary="Automated AI summary generated for this intelligence report.",
+                gemini_summary=summary,
                 status="done"
             )
             
