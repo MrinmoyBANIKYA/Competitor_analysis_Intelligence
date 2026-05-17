@@ -8,12 +8,23 @@ from langchain_core.runnables import RunnablePassthrough
 
 # --- Pydantic Schemas ---
 
+class FinancialProfile(BaseModel):
+    market_cap: float = Field(description="Market Capitalization or Valuation in INR Cr")
+    pe_ratio: float = Field(description="Price to Earnings ratio (0 if private/unprofitable)")
+    revenue_ttm: float = Field(description="TTM Revenue in INR Cr")
+    yoy_revenue_growth: float = Field(description="YoY Revenue Growth Rate (%)")
+    employee_count: int = Field(description="Total headcount")
+    funding_stage: str = Field(description="Funding Stage (e.g. Series A, B, Bootstrapped, Public)")
+    last_funding_amount: float = Field(description="Last Funding Amount in USD Millions")
+
 class NormalisedSignals(BaseModel):
     trend_score: float = Field(description="Normalized score for search interest (0-10)")
     sentiment_score: float = Field(description="Normalized score for user sentiment (0-10)")
     hiring_velocity: float = Field(description="Normalized score for hiring activity (0-10)")
     news_sentiment: float = Field(description="Normalized score for news coverage sentiment (0-10)")
     app_health: float = Field(description="Normalized score for app store performance (0-10)")
+    financial_health: float = Field(description="Normalized score for financial strength, capital growth, and scale (0-10)")
+    company_profiles: Dict[str, FinancialProfile] = Field(description="Map of company name to its FinancialProfile")
 
 class SectorAnalysis(BaseModel):
     executive_summary: str = Field(description="High-level summary of the sector health")

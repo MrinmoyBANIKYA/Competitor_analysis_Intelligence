@@ -739,7 +739,7 @@ else:
 
         # 4. Navigation Sections
         st.markdown("<p style='font-size: 10px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;'>INTELLIGENCE</p>", unsafe_allow_html=True)
-        intel_menu = st.radio("Intel", ["Dashboard", "AI Analyst", "Competitor Intel"], label_visibility="collapsed")
+        intel_menu = st.radio("Intel", ["Dashboard", "Quantitative Momentum", "AI Analyst", "Competitor Intel"], label_visibility="collapsed")
         
         st.markdown("<div style='height: 1rem'></div>", unsafe_allow_html=True)
         st.markdown("<p style='font-size: 10px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;'>REPORTS</p>", unsafe_allow_html=True)
@@ -756,6 +756,7 @@ else:
         if "force_view" in st.session_state:
             view = st.session_state.pop("force_view")
         elif intel_menu == "Dashboard": view = "Overview"
+        elif intel_menu == "Quantitative Momentum": view = "Quantitative Momentum"
         elif intel_menu == "AI Analyst": view = "AI Analyst"
         elif intel_menu == "Competitor Intel": view = "Brand Dashboard"
         elif report_menu == "Generate Report": view = "Generate Report"
@@ -1428,6 +1429,237 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                 Last updated: {memo_data["timestamp"]}
             </div>
             """, unsafe_allow_html=True)
+
+
+    elif view == "Quantitative Momentum":
+        st.markdown("<h2 class='page-header'>Quantitative Momentum</h2>", unsafe_allow_html=True)
+        st.markdown("<p style='color:#8B949E; margin-left: 0.5rem;'>Advanced quantitative momentum scoring and ecosystem regime tracking designed for investment professionals and operational analysts.</p>", unsafe_allow_html=True)
+        
+        # 1. Fetch data from FastAPI backend (or simulate in demo mode)
+        with st.spinner("Calculating quantitative momentum signals..."):
+            momentum_data = None
+            if st.session_state.demo_mode:
+                # Local mock generator for demo mode
+                now = datetime.date.today()
+                mock_history = []
+                for i in range(30):
+                    date_str = (now - datetime.timedelta(days=30-i)).strftime("%Y-%m-%d")
+                    mock_history.append({"date": date_str, "score": round(50.0 + i*0.5 + (i%3)*2, 1)})
+                
+                # Mock report
+                mock_report = {
+                    "sector": selected_sector,
+                    "composite_score": 72.4,
+                    "regime": "bull",
+                    "signal_deltas": {
+                        "trend_score": {"wow": 0.8, "mom": 1.2},
+                        "news_sentiment": {"wow": -0.2, "mom": 0.5},
+                        "hiring_velocity": {"wow": 1.5, "mom": 2.4},
+                        "app_health": {"wow": 0.1, "mom": -0.3},
+                        "employer_health": {"wow": 0.0, "mom": 0.1}
+                    },
+                    "divergence_flags": ["stealth_growth"],
+                    "metrics": {
+                        "trend_score": 7.5,
+                        "news_sentiment": 6.8,
+                        "hiring_velocity": 8.2,
+                        "app_health": 7.1,
+                        "employer_health": 6.4
+                    }
+                }
+                momentum_data = {"report": mock_report, "backtest": mock_history}
+            else:
+                try:
+                    import httpx
+                    api_url = f"http://localhost:8000/analytics/momentum/{selected_sector}"
+                    with httpx.Client(timeout=10.0) as client:
+                        resp = client.get(api_url)
+                        resp.raise_for_status()
+                        momentum_data = resp.json()
+                except Exception as e:
+                    st.warning("Could not connect to live Momentum API. Using local high-fidelity fallback.")
+                    # Safe fallback same as demo mode
+                    now = datetime.date.today()
+                    mock_history = []
+                    for i in range(30):
+                        date_str = (now - datetime.timedelta(days=30-i)).strftime("%Y-%m-%d")
+                        mock_history.append({"date": date_str, "score": round(52.5 + i*0.4 + (i%4)*1.5, 1)})
+                    
+                    mock_report = {
+                        "sector": selected_sector,
+                        "composite_score": 68.5,
+                        "regime": "bull",
+                        "signal_deltas": {
+                            "trend_score": {"wow": 0.5, "mom": 0.9},
+                            "news_sentiment": {"wow": 0.2, "mom": 0.4},
+                            "hiring_velocity": {"wow": 1.1, "mom": 1.8},
+                            "app_health": {"wow": -0.1, "mom": -0.2},
+                            "employer_health": {"wow": 0.0, "mom": 0.2}
+                        },
+                        "divergence_flags": ["stealth_growth"],
+                        "metrics": {
+                            "trend_score": 7.2,
+                            "news_sentiment": 6.5,
+                            "hiring_velocity": 7.8,
+                            "app_health": 6.9,
+                            "employer_health": 6.2
+                        }
+                    }
+                    momentum_data = {"report": mock_report, "backtest": mock_history}
+
+        # 2. Render Divergence Alerts
+        report = momentum_data["report"]
+        flags = report.get("divergence_flags", [])
+        if flags:
+            for flag in flags:
+                if flag == "stealth_growth":
+                    st.markdown("""
+                    <div style="background: rgba(55,138,221,0.1); border-left: 5px solid #378ADD; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin:0 0 6px 0; color:white; font-family:Manrope;">⚠️ Stealth Growth Divergence Detected</h4>
+                        <p style="margin:0; color:#C9D1D9; font-size:13px;">High hiring velocity coupled with declining or flat public search interest suggests <b>under-the-radar scale</b>. The ecosystem is adding capacity and execution speed ahead of public marketing campaigns.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                elif flag == "hype_bubble":
+                    st.markdown("""
+                    <div style="background: rgba(248,81,73,0.1); border-left: 5px solid #F85149; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin:0 0 6px 0; color:white; font-family:Manrope;">🚨 Speculative Hype Bubble Alert</h4>
+                        <p style="margin:0; color:#C9D1D9; font-size:13px;">Ecosystem Google Search interest is surging extremely rapidly, but internal job postings and recruitment velocity have flattened. High consumer/market interest with limited organizational expansion indicates potential short-term speculative saturation.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                elif flag == "product_decay":
+                    st.markdown("""
+                    <div style="background: rgba(210,153,34,0.1); border-left: 5px solid #D29922; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin:0 0 6px 0; color:white; font-family:Manrope;">%s Product Experience Decay Warning</h4>
+                        <p style="margin:0; color:#C9D1D9; font-size:13px;">Customer satisfaction ratings on app stores are in steep decline (-WoW) while general brand volume and funding remains stable. Operational degradation is present; product quality needs immediate remediation.</p>
+                    </div>
+                    """ % "📉", unsafe_allow_html=True)
+                elif flag == "toxic_scale":
+                    st.markdown("""
+                    <div style="background: rgba(248,81,73,0.1); border-left: 5px solid #F85149; padding: 16px; border-radius: 8px; margin-bottom: 20px;">
+                        <h4 style="margin:0 0 6px 0; color:white; font-family:Manrope;">🔥 Toxic Scale Divergence Flagged</h4>
+                        <p style="margin:0; color:#C9D1D9; font-size:13px;">High external ratings and growth but critical internal cultural/burnout warnings on employer tracking platforms. Operational disruption is a risk; high employee turnover could impact product velocity within 90-180 days.</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+        # 3. Main Dashboard Columns
+        col_left, col_right = st.columns([1, 1.2])
+        
+        with col_left:
+            # Gauge Plotly Indicator
+            score = report["composite_score"]
+            regime = report["regime"].upper()
+            
+            if regime == "BULL":
+                r_color = "#3FB950"
+            elif regime == "BEAR":
+                r_color = "#F85149"
+            else:
+                r_color = "#D29922"
+                
+            fig_gauge = go.Figure(go.Indicator(
+                mode = "gauge+number",
+                value = score,
+                domain = {'x': [0, 1], 'y': [0, 1]},
+                title = {'text': f"REGIME: {regime}", 'font': {'size': 20, 'family': 'Manrope', 'color': r_color, 'weight': 'bold'}},
+                number = {'font': {'size': 64, 'family': 'Manrope', 'color': 'white'}},
+                gauge = {
+                    'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "#21262D"},
+                    'bar': {'color': r_color},
+                    'bgcolor': "rgba(255,255,255,0.03)",
+                    'borderwidth': 2,
+                    'bordercolor': "#21262D",
+                    'steps': [
+                        {'range': [0, 45], 'color': 'rgba(248,81,73,0.1)'},
+                        {'range': [45, 65], 'color': 'rgba(210,153,34,0.1)'},
+                        {'range': [65, 100], 'color': 'rgba(63,185,80,0.1)'}
+                    ],
+                }
+            ))
+            fig_gauge.update_layout(height=320, margin=dict(t=50, b=20, l=30, r=30), paper_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig_gauge, use_container_width=True, config={'displayModeBar': False})
+            
+            # Regime Description Card
+            st.markdown(f"""
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid #21262D; border-radius: 12px; padding: 20px; text-align:center;">
+                <div style="font-size:12px; color:#8B949E; text-transform:uppercase; letter-spacing:1px; margin-bottom:6px;">Current Regime Index</div>
+                <div style="font-size:24px; font-weight:800; color:{r_color}; font-family:Manrope;">{regime} MODE</div>
+                <div style="font-size:13px; color:#C9D1D9; margin-top:8px; line-height:1.5;">
+                    {"Ecosystem is expanding sustainably with strong operational and search metrics." if regime == "BULL" else
+                     "Ecosystem is retracting or showing operational strain. Capital and labor resources should be preserved." if regime == "BEAR" else
+                     "Ecosystem is consolidating. Balanced metrics with horizontal movement."}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        with col_right:
+            st.markdown("<p class='chart-title'>Ecosystem Signal Scorecard</p>", unsafe_allow_html=True)
+            
+            # Custom HTML table for signal deltas
+            metrics_display = {
+                "trend_score": "Search Interest (Trends)",
+                "news_sentiment": "Media Coverage Sentiment",
+                "hiring_velocity": "Recruitment & Job Openings",
+                "app_health": "Consumer App Store Reviews",
+                "employer_health": "Employee Satisfaction Score"
+            }
+            
+            table_rows = ""
+            for metric_key, label in metrics_display.items():
+                cur_val = report["metrics"][metric_key]
+                wow = report["signal_deltas"][metric_key]["wow"]
+                mom = report["signal_deltas"][metric_key]["mom"]
+                
+                wow_color = "#3FB950" if wow > 0 else ("#F85149" if wow < 0 else "#8B949E")
+                wow_symbol = "▲" if wow > 0 else ("▼" if wow < 0 else "—")
+                wow_text = f"{wow_symbol} {abs(wow):.1f}" if wow != 0 else "—"
+                
+                mom_color = "#3FB950" if mom > 0 else ("#F85149" if mom < 0 else "#8B949E")
+                mom_symbol = "▲" if mom > 0 else ("▼" if mom < 0 else "—")
+                mom_text = f"{mom_symbol} {abs(mom):.1f}" if mom != 0 else "—"
+                
+                table_rows += f"""
+                <tr style="border-bottom: 1px solid #21262D;">
+                    <td style="padding: 12px 6px; font-weight:600; color:white; font-size:13px;">{label}</td>
+                    <td style="padding: 12px 6px; text-align:right; font-weight:700; color:#378ADD; font-size:14px;">{cur_val:.1f} / 10</td>
+                    <td style="padding: 12px 6px; text-align:right; font-weight:600; color:{wow_color}; font-size:13px;">{wow_text}</td>
+                    <td style="padding: 12px 6px; text-align:right; font-weight:600; color:{mom_color}; font-size:13px;">{mom_text}</td>
+                </tr>
+                """
+                
+            table_html = f"""
+            <table style="width:100%; border-collapse:collapse; font-family:Inter, sans-serif;">
+                <thead>
+                    <tr style="border-bottom: 2px solid #30363D; color:#8B949E; font-size:11px; text-transform:uppercase; letter-spacing:0.5px;">
+                        <th style="padding: 8px 6px; text-align:left;">Signal Name</th>
+                        <th style="padding: 8px 6px; text-align:right;">Latest Score</th>
+                        <th style="padding: 8px 6px; text-align:right;">WoW Delta</th>
+                        <th style="padding: 8px 6px; text-align:right;">MoM Delta</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {table_rows}
+                </tbody>
+            </table>
+            """
+            st.markdown(table_html, unsafe_allow_html=True)
+            st.caption("All signals are mathematically normalized to a standardized 0-10 scale (10 is maximum performance).")
+
+        # 4. Historical Backtest Chart
+        st.markdown("<div style='height: 2.5rem'></div>", unsafe_allow_html=True)
+        st.markdown("<p class='chart-title'>Ecosystem Backtest Performance (30-Day Index)</p>", unsafe_allow_html=True)
+        
+        backtest_df = pd.DataFrame(momentum_data["backtest"])
+        if not backtest_df.empty:
+            fig_backtest = px.area(backtest_df, x="date", y="score", color_discrete_sequence=["#378ADD"])
+            fig_backtest.update_traces(line=dict(width=3, shape="spline"), mode="lines+markers")
+            
+            # NixTio premium formatting
+            apply_layout(fig_backtest, 320)
+            apply_nixtio_theme(fig_backtest)
+            fig_backtest.update_yaxes(range=[0, 100])
+            st.plotly_chart(fig_backtest, use_container_width=True)
+        else:
+            st.info("Ecosystem backtest data loading...")
 
 
     elif view == "Brand Dashboard":

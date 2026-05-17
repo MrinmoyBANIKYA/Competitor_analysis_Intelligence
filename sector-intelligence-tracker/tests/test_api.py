@@ -1,6 +1,7 @@
 import pytest
 import httpx
 import asyncio
+from unittest.mock import AsyncMock
 from api.main import app
 
 @pytest.mark.asyncio
@@ -38,23 +39,47 @@ async def test_analyze_endpoint():
 
 @pytest.mark.asyncio
 async def test_report_lifecycle():
+    from unittest.mock import patch
+    
+    mock_run_process = AsyncMock()
+    mock_run_process.return_value = {
+        "analysis": {
+            "executive_summary": "Test summary from mocked chain"
+        }
+    }
+    
+    with patch("api.main.get_intel_chain", return_value=mock_run_process):
+        async with httpx.AsyncClient(app=app, base_url="http://test") as ac:
+            # 1. Trigger generation
+            gen_resp = await ac.post("/report/generate", json={
+                "sector": "Fintech Payments",
+                "companies": ["PhonePe"],
+                "data": {}
+            })
+            assert gen_resp.status_code == 200
+            job_id = gen_resp.json()["job_id"]
+            assert job_id is not None
+            
+            # 2. Check status immediately
+            status_resp = await ac.get(f"/report/status/{job_id}")
+            assert status_resp.status_code == 200
+            assert status_resp.json()["status"] in ["queued", "running", "done"]
+            
+            # 3. Wait a bit and check again
+            await asyncio.sleep(2.5) # Allow the 2s simulate sleep in background task to complete
+            status_resp = await ac.get(f"/report/status/{job_id}")
+            assert status_resp.status_code == 200
+            assert status_resp.json()["status"] == "done"
+
+@pytest.mark.asyncio
+async def test_momentum_endpoint():
     async with httpx.AsyncClient(app=app, base_url="http://test") as ac:
-        # 1. Trigger generation
-        gen_resp = await ac.post("/report/generate", json={
-            "sector": "Fintech Payments",
-            "companies": ["PhonePe"],
-            "data": {}
-        })
-        assert gen_resp.status_code == 200
-        job_id = gen_resp.json()["job_id"]
-        assert job_id is not None
-        
-        # 2. Check status immediately
-        status_resp = await ac.get(f"/report/status/{job_id}")
-        assert status_resp.status_code == 200
-        assert status_resp.json()["status"] in ["queued", "running", "done"]
-        
-        # 3. Wait a bit and check again
-        await asyncio.sleep(1)
-        status_resp = await ac.get(f"/report/status/{job_id}")
-        assert status_resp.status_code == 200
+        response = await ac.get("/analytics/momentum/Fintech Payments")
+    assert response.status_code == 200
+    data = response.json()
+    assert "report" in data
+    assert "backtest" in data
+    assert data["report"]["sector"] == "Fintech Payments"
+    assert "composite_score" in data["report"]
+    assert "regime" in data["report"]
+    assert len(data["backtest"]) > 0

@@ -84,7 +84,7 @@ class NixTioReport(FPDF):
             self.set_xy(MARGIN, 10)
             self.set_font("Helvetica", "B", 12)
             self.set_text_color(*NIXTIO_WHITE)
-            self.cell(40, 10, "N• NixTio", align="L")
+            self.cell(40, 10, "NixTio", align="L")
             self.set_font("Helvetica", "", 8)
             self.set_text_color(*NIXTIO_TEXT)
             self.cell(0, 10, f"{self.sector_name.upper()} | STRATEGIC INTELLIGENCE", align="R")
@@ -113,7 +113,7 @@ class NixTioReport(FPDF):
         self.set_xy(MARGIN, MARGIN)
         self.set_font("Helvetica", "B", 24)
         self.set_text_color(*NIXTIO_WHITE)
-        self.cell(0, 10, "N• NixTio", ln=1)
+        self.cell(0, 10, "NixTio", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         
         # Title block
         self.set_y(PAGE_H / 2 - 40)
@@ -123,7 +123,7 @@ class NixTioReport(FPDF):
         self.ln(10)
         self.set_font("Helvetica", "", 16)
         self.set_text_color(*NIXTIO_BLUE)
-        self.cell(0, 10, "Competitive Intelligence Briefing", ln=1)
+        self.cell(0, 10, "Competitive Intelligence Briefing", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.set_font("Helvetica", "I", 12)
         self.set_text_color(*NIXTIO_TEXT)
         self.cell(0, 10, "Prepared by NixTio AI Strategy Engine", ln=1)
@@ -146,11 +146,9 @@ class NixTioReport(FPDF):
         
         # Watermark
         self.set_font("Helvetica", "B", 60)
-        self.set_text_color(255, 255, 255)
+        self.set_text_color(20, 24, 30)
         with self.rotation(45, PAGE_W/2, PAGE_H/2):
-            self.set_alpha(0.03)
             self.text(PAGE_W/2 - 80, PAGE_H/2, "CONFIDENTIAL")
-            self.set_alpha(1)
 
     def draw_executive_summary(self, score: int, findings: list[str], summary_text: str):
         self.add_page()
@@ -362,7 +360,7 @@ class NixTioReport(FPDF):
         for src, desc in sources:
             self.set_font("Helvetica", "B", 11)
             self.set_text_color(*NIXTIO_WHITE)
-            self.cell(0, 7, f"• {src}", ln=1)
+            self.cell(0, 7, f"- {src}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
             self.set_font("Helvetica", "", 9)
             self.set_text_color(*NIXTIO_TEXT)
             self.multi_cell(0, 5, desc)
@@ -374,7 +372,7 @@ class NixTioReport(FPDF):
         self.set_xy(MARGIN + 5, self.get_y() + 5)
         self.set_font("Helvetica", "B", 9)
         self.set_text_color(*NIXTIO_WHITE)
-        self.cell(0, 6, "DISCLAIMER", ln=1)
+        self.cell(0, 6, "DISCLAIMER", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
         self.set_font("Helvetica", "", 8)
         self.set_text_color(*NIXTIO_TEXT)
         disclaimer = (
@@ -388,7 +386,89 @@ class NixTioReport(FPDF):
         self.set_y(PAGE_H - 30)
         self.set_font("Helvetica", "B", 10)
         self.set_text_color(*NIXTIO_WHITE)
-        self.cell(0, 10, "N• NixTio Intelligence Terminal", align="C")
+        self.cell(0, 10, "NixTio Intelligence Terminal", align="C")
+
+    def draw_financial_signals(self, financials: dict):
+        if not financials:
+            return
+            
+        setup_matplotlib_dark()
+        self.add_page()
+        self.set_fill_color(*NIXTIO_DARK)
+        self.rect(0, 25, PAGE_W, PAGE_H, "F")
+        self.set_y(35)
+        self.set_font("Helvetica", "B", 20)
+        self.set_text_color(*NIXTIO_TEXT)
+        self.cell(0, 10, "Financial Signals Analysis", ln=1)
+        self.ln(5)
+        
+        profiles = financials.get("company_profiles", {})
+        if not profiles:
+            return
+            
+        companies = list(profiles.keys())
+        revenues = [profiles[c].get("revenue_ttm", 0.0) for c in companies]
+        valuations = [profiles[c].get("market_cap", 0.0) for c in companies]
+        
+        # Build Matplotlib Double Bar Chart
+        x = np.arange(len(companies))
+        width = 0.35
+        
+        fig, ax1 = plt.subplots(figsize=(10, 5))
+        
+        rects1 = ax1.bar(x - width/2, revenues, width, label='TTM Revenue (INR Cr)', color='#378ADD')
+        ax1.set_ylabel('Revenue (INR Cr)', color='#378ADD')
+        ax1.tick_params(axis='y', labelcolor='#378ADD')
+        
+        ax2 = ax1.twinx()
+        rects2 = ax2.bar(x + width/2, valuations, width, label='Market Cap / Valuation (INR Cr)', color='#3FB950')
+        ax2.set_ylabel('Valuation (INR Cr)', color='#3FB950')
+        ax2.tick_params(axis='y', labelcolor='#3FB950')
+        
+        plt.title('Scale & Capital Health Comparison')
+        ax1.set_xticks(x)
+        ax1.set_xticklabels(companies, rotation=15)
+        fig.tight_layout()
+        
+        img_fin = io.BytesIO()
+        plt.savefig(img_fin, format='png', dpi=150)
+        plt.close()
+        
+        self.image(img_fin, x=MARGIN, y=self.get_y(), w=PAGE_W - 2*MARGIN)
+        self.set_y(self.get_y() + 85)
+        
+        # Draw a detailed comparison table of financial metrics
+        self.ln(10)
+        self.set_font("Helvetica", "B", 12)
+        self.set_text_color(*NIXTIO_BLUE)
+        self.cell(0, 8, "Corporate Profiles & MCA Data", ln=1)
+        self.ln(2)
+        
+        self.set_font("Helvetica", "B", 8)
+        self.set_fill_color(*NIXTIO_MUTED)
+        self.cell(40, 8, "  Company", fill=True)
+        self.cell(30, 8, "Stage", fill=True, align="C")
+        self.cell(30, 8, "Inc. Date", fill=True, align="C")
+        self.cell(30, 8, "Paid-up Cap", fill=True, align="R")
+        self.cell(40, 8, "Directors Active", fill=True, align="C", ln=1)
+        
+        self.set_font("Helvetica", "", 8)
+        row_idx = 0
+        for co, p in profiles.items():
+            fill = (row_idx % 2 == 1)
+            self.set_fill_color(22, 27, 34) if fill else self.set_fill_color(*NIXTIO_DARK)
+            
+            stage = p.get("funding_stage", "N/A")
+            inc_date = p.get("incorporation_date", "N/A")
+            paid_up = f"INR {p.get('paid_up_capital', 0.0):.1f} Cr"
+            directors = f"{len(p.get('din_directors', []))} Active"
+            
+            self.cell(40, 7, f"  {co}", fill=True)
+            self.cell(30, 7, sanitize(stage), fill=True, align="C")
+            self.cell(30, 7, sanitize(inc_date), fill=True, align="C")
+            self.cell(30, 7, sanitize(paid_up), fill=True, align="R")
+            self.cell(40, 7, sanitize(directors), fill=True, align="C", ln=1)
+            row_idx += 1
 
 # ---------------------------------------------------------------------------
 # Public API
@@ -407,6 +487,7 @@ def generate_report(
     recommendations: list[dict] = None,
     trends_df: pd.DataFrame = None,
     meta: dict = None,
+    df_financials: dict = None,
 ) -> bytes:
     """
     Build a boardroom-grade NixTio Intelligence PDF.
@@ -439,10 +520,14 @@ def generate_report(
     # Page 3-4: Data Intelligence
     pdf.draw_data_intelligence(df_ratings, df_hiring, df_news, trends_df)
     
-    # Page 5: AI Strategic Recommendations
+    # Page 5: Financial Signals
+    if df_financials:
+        pdf.draw_financial_signals(df_financials)
+    
+    # Page 6: AI Strategic Recommendations
     pdf.draw_recommendations(recommendations)
     
-    # Page 6: Methodology
+    # Page 7: Methodology
     pdf.draw_methodology()
     
     return bytes(pdf.output())

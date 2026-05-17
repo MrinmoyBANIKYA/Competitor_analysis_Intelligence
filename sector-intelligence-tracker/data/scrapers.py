@@ -31,6 +31,7 @@ from data.fallback_data import (
     get_fallback_news,
     get_fallback_sentiment
 )
+from data.india_sources import fetch_india_financials, get_fallback_financials
 
 logger = logging.getLogger(__name__)
 
@@ -722,6 +723,7 @@ class SectorData:
         self.employer = results.get("employer", {}).get("data")
         self.news = results.get("news", {}).get("data")
         self.sentiment = results.get("sentiment", {}).get("data")
+        self.financials = results.get("financials", {}).get("data")
         
         ok_count = sum(1 for r in results.values() if r.get("status") in ["ok", "stale"])
         self.health_score = (ok_count / len(results)) * 100 if results else 0
@@ -769,6 +771,11 @@ class DataFetcher:
                 "Sentiment", f"sentiment_{sector_id}", 12*3600,
                 lambda c: get_fallback_sentiment(c), get_fallback_sentiment, companies,
                 companies=companies
+            ),
+            "financials": lambda: _get_cached_or_fetch(
+                "Financial Profiles", f"financials_{sector_id}", 12*3600,
+                fetch_india_financials, get_fallback_financials, companies,
+                companies=companies, sector_name=sector_id
             )
         }
 
