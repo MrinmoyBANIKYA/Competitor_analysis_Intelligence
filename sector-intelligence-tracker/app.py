@@ -415,8 +415,21 @@ if True:
                  st.cache_data.clear()
                  st.rerun()
 
+    class SafeColorMap(dict):
+        def __init__(self, initial_map=None):
+            super().__init__(initial_map or {})
+            
+        def __getitem__(self, key):
+            if key not in self:
+                self[key] = CHART_COLORS[len(self) % len(CHART_COLORS)]
+            return super().__getitem__(key)
+            
+        def get(self, key, default=None):
+            return self[key]
+
     def color_map_for(companies):
-        return {c: CHART_COLORS[i % len(CHART_COLORS)] for i, c in enumerate(companies)}
+        initial = {c: CHART_COLORS[i % len(CHART_COLORS)] for i, c in enumerate(companies)}
+        return SafeColorMap(initial)
 
     def render_nixtio_metrics_grid(metrics_list):
         """
@@ -916,16 +929,21 @@ if True:
         score_df.index = score_df.index + 1
         score_df = score_df.reset_index().rename(columns={"index": "Rank"})
         
-        def color_overall_score(val):
-            if val >= 70: color = '#81C784'
-            elif val >= 50: color = '#FFB74D'
-            else: color = '#E57373'
-            return f'color: {color}; font-weight: bold;'
-            
-        styled_df = score_df.style.map(color_overall_score, subset=['Overall Score'])
-        
         st.markdown("<p class='chart-title'>Company Health Scorecard</p>", unsafe_allow_html=True)
-        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+        st.dataframe(
+            score_df,
+            column_config={
+                "Overall Score": st.column_config.ProgressColumn(
+                    "Overall Score",
+                    help="Composite score",
+                    format="%d",
+                    min_value=0,
+                    max_value=100,
+                )
+            },
+            use_container_width=True,
+            hide_index=True
+        )
         st.caption("Composite score across product, talent, brand, press and employer dimensions.")
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -1264,7 +1282,7 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                 mode = "gauge+number",
                 value = score,
                 domain = {'x': [0, 1], 'y': [0, 1]},
-                title = {'text': f"REGIME: {regime}", 'font': {'size': 20, 'family': 'Manrope', 'color': r_color, 'weight': 'bold'}},
+                title = {'text': f"REGIME: {regime}", 'font': {'size': 20, 'family': 'Manrope', 'color': r_color}},
                 number = {'font': {'size': 64, 'family': 'Manrope', 'color': 'white'}},
                 gauge = {
                     'axis': {'range': [None, 100], 'tickwidth': 1, 'tickcolor': "#21262D"},
