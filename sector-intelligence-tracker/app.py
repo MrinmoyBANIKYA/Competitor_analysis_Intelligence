@@ -49,13 +49,21 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+    st.session_state.logged_in = True
 if "history" not in st.session_state:
     st.session_state.history = []
 if "demo_mode" not in st.session_state:
-    st.session_state.demo_mode = False
+    st.session_state.demo_mode = True
 if "onboarded" not in st.session_state:
     st.session_state.onboarded = True
+if "saas_token" not in st.session_state:
+    st.session_state.saas_token = "mock_enterprise_token"
+if "saas_user" not in st.session_state:
+    st.session_state.saas_user = {
+        "email": "admin@nixtio.com",
+        "org_name": "NixTio Default",
+        "plan_tier": "enterprise"
+    }
 if "sector_selector" not in st.session_state:
     st.session_state["sector_selector"] = list_sector_keys()[0]
 if "last_sector" not in st.session_state:
@@ -483,129 +491,18 @@ if True:
         elif report_menu == "Report History": view = "Report History"
         else: view = sys_view
 
-        # 5. Multi-Tenant SaaS Profile & Auth Card
-        st.markdown("---")
-        if "saas_token" not in st.session_state or not st.session_state.saas_token:
-            st.markdown("<p style='font-size: 10px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;'>🔒 SAAS ACCESS</p>", unsafe_allow_html=True)
-            auth_action = st.selectbox("Choose Action", ["Sign In", "Register Org"], label_visibility="collapsed")
-            
-            with st.form("saas_auth_form"):
-                email_input = st.text_input("Email", placeholder="name@company.com")
-                password_input = st.text_input("Password", type="password", placeholder="••••••••")
-                org_input = ""
-                if auth_action == "Register Org":
-                    org_input = st.text_input("Organization Name", placeholder="Acme Corp")
-                    
-                auth_submit = st.form_submit_button("Access Premium Features")
-                if auth_submit:
-                    import httpx
-                    try:
-                        if auth_action == "Sign In":
-                            resp = httpx.post("http://localhost:8000/auth/login", json={
-                                "email": email_input,
-                                "password": password_input
-                            })
-                        else:
-                            resp = httpx.post("http://localhost:8000/auth/register", json={
-                                "email": email_input,
-                                "password": password_input,
-                                "org_name": org_input
-                            })
-                        
-                        if resp.status_code == 200:
-                            data = resp.json()
-                            st.session_state.saas_token = data["access_token"]
-                            
-                            # Get user context
-                            context_resp = httpx.get("http://localhost:8000/auth/me", headers={
-                                "Authorization": f"Bearer {data['access_token']}"
-                            })
-                            if context_resp.status_code == 200:
-                                st.session_state.saas_user = context_resp.json()
-                            st.success("Successfully authenticated!")
-                            st.rerun()
-                        else:
-                            st.error(f"Authentication failed: {resp.json().get('detail', 'Unknown error')}")
-                    except Exception as e:
-                        st.error(f"Error connecting to Auth API: {e}")
-        else:
-            user_ctx = st.session_state.get("saas_user", {})
-            plan_tier = user_ctx.get("plan_tier", "free").upper()
-            org_name = user_ctx.get("org_name", "NixTio Org")
-            email = user_ctx.get("email", "operator@nixtio.com")
-            
-            # Fetch Live Monthly Usage Metering Limits
-            usage_data = {"usage": 0, "limit": 5}
-            try:
-                import httpx
-                resp = httpx.get("http://localhost:8000/billing/usage", headers={
-                    "Authorization": f"Bearer {st.session_state.saas_token}"
-                })
-                if resp.status_code == 200:
-                    usage_data = resp.json()
-            except Exception:
-                pass
-            
-            # Display SaaS Card
-            st.markdown(f"""
-            <div style="padding: 14px; background: rgba(55,138,221,0.05); border-radius: 12px; border: 1px solid rgba(55,138,221,0.15); margin-bottom: 12px;">
-                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                    <div style="width: 30px; height: 30px; border-radius: 50%; background: #378ADD; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white;">
-                        {email[0].upper() if email else "U"}
-                    </div>
-                    <div>
-                        <div style="font-size: 13px; font-weight: 700; color: white;">{org_name}</div>
-                        <div style="font-size: 9px; color: #8B949E;">{email}</div>
-                    </div>
-                </div>
-                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px;">
-                    <span style="font-size: 10px; color:#8B949E; font-weight: 600;">PLAN TIER</span>
-                    <span style="font-size: 10px; color:#3FB950; font-weight: 800; letter-spacing: 0.5px;">{plan_tier}</span>
-                </div>
-                <div style="font-size: 10px; color: #8B949E; margin-bottom: 4px; display:flex; justify-content:space-between;">
-                    <span>REPORT LIMIT METER</span>
-                    <span>{usage_data['usage']} / {usage_data['limit'] if usage_data['limit'] < 99999 else '∞'} used</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            # Upgrade Plan via checkout stub
-            if plan_tier != "ENTERPRISE":
-                if st.button("🚀 Upgrade to Pro", key="upgrade_billing_btn", use_container_width=True, type="primary"):
-                    try:
-                        import httpx
-                        resp = httpx.post("http://localhost:8000/billing/create-checkout-session", json={"plan_tier": "pro"}, headers={
-                            "Authorization": f"Bearer {st.session_state.saas_token}"
-                        })
-                        if resp.status_code == 200:
-                            checkout_url = resp.json()["checkout_url"]
-                            st.success(f"Checkout Session Created! [Stripe Checkout URL]({checkout_url})")
-                    except Exception as e:
-                        st.error(f"Billing request failed: {e}")
-            
-            if st.button("Sign Out Account", key="saas_signout_btn", use_container_width=True):
-                st.session_state.saas_token = None
-                st.session_state.saas_user = None
-                st.rerun()
-
-    # Demo Banner
-    if st.session_state.demo_mode:
+        # Sidebar clean footer per user guidelines
         st.markdown("""
-        <div style="background: rgba(210,153,34,0.1); border: 1px solid #D29922; padding: 8px 24px; text-align: center; font-size: 12px; color: #D29922; margin-bottom: 16px; border-radius: 8px;">
-            <b>DEMO MODE ACTIVE:</b> You're viewing pre-populated data. Configure API keys in Settings to go live.
+        <div style="margin-top: auto; padding-top: 2rem; font-size: 11px; color: #484F58; text-align: center;">
+            NixTio Enterprise Platform
         </div>
         """, unsafe_allow_html=True)
 
-    # Sector Scanning Micro-interaction
+    # Demo Banner
+    # Instant Sector Sync
     if st.session_state.last_sector != selected_sector:
-        with st.status(f"Scanning {selected_sector} ecosystem...", expanded=True) as status:
-            time.sleep(1.2)
-            status.update(label="Sector Map Loaded", state="complete", expanded=False)
         st.session_state.last_sector = selected_sector
         st.rerun()
-
-    # Onboarding Modal
-    render_onboarding()
             
 
 
@@ -1608,32 +1505,32 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                             }, headers=headers)
                             resp.raise_for_status()
                             job_id = resp.json()["job_id"]
-                        
-                        # Poll for status
-                        status.update(label=f"Job {job_id} queued...", state="running")
-                        while True:
-                            check = httpx.get(f"http://localhost:8000/report/status/{job_id}")
-                            check_status = check.json()["status"]
+                            
+                            # Poll for status
+                            status.update(label=f"Job {job_id} queued...", state="running")
+                            while True:
+                                check = httpx.get(f"http://localhost:8000/report/status/{job_id}")
+                                check_status = check.json()["status"]
+                                if check_status == "done":
+                                    status.update(label="Report ready!", state="complete")
+                                    break
+                                elif check_status == "failed":
+                                    status.update(label="Generation failed", state="error")
+                                    st.error("The background report generation job failed.")
+                                    break
+                                time.sleep(1)
+                            
                             if check_status == "done":
-                                status.update(label="Report ready!", state="complete")
-                                break
-                            elif check_status == "failed":
-                                status.update(label="Generation failed", state="error")
-                                st.error("The background report generation job failed.")
-                                break
-                            time.sleep(1)
-                        
-                        if check_status == "done":
-                            # In a real app, we might download from a URL. 
-                            # For now, we'll assume we can still generate locally or fetch the bytes.
-                            # Since the user asked for BackgroundTasks, polling is correct.
-                            st.success("Report generated successfully on backend.")
-                            # Add download button if we have a way to fetch the file
-                            # For now, simulate history log
-                            ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                            st.session_state.history.append({"time": ts, "sector": selected_sector, "type": "PDF Report (API)"})
-                    except Exception as e:
-                        st.error(f"API Report generation failed: {e}")
+                                # In a real app, we might download from a URL. 
+                                # For now, we'll assume we can still generate locally or fetch the bytes.
+                                # Since the user asked for BackgroundTasks, polling is correct.
+                                st.success("Report generated successfully on backend.")
+                                # Add download button if we have a way to fetch the file
+                                # For now, simulate history log
+                                ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                                st.session_state.history.append({"time": ts, "sector": selected_sector, "type": "PDF Report (API)"})
+                        except Exception as e:
+                            st.error(f"API Report generation failed: {e}")
 
 
     elif view == "Report History":
