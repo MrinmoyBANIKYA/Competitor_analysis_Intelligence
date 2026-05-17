@@ -418,11 +418,14 @@ if True:
     def color_map_for(companies):
         return {c: CHART_COLORS[i % len(CHART_COLORS)] for i, c in enumerate(companies)}
 
-    def get_safe_cmap(df, color_column, base_cmap):
+    def get_color_seq(df, color_column, base_cmap):
+        """Return an ordered color list matching unique values in df[color_column].
+        Uses color_discrete_sequence instead of color_discrete_map to avoid
+        Plotly Express groupby key lookups that cause KeyErrors."""
         if df is None or df.empty or color_column not in df.columns:
-            return base_cmap
-        unique_cos = df[color_column].dropna().unique()
-        return {co: base_cmap.get(co, CHART_COLORS[i % len(CHART_COLORS)]) for i, co in enumerate(unique_cos)}
+            return list(CHART_COLORS)
+        unique_vals = list(df[color_column].dropna().unique())
+        return [base_cmap.get(v, CHART_COLORS[i % len(CHART_COLORS)]) for i, v in enumerate(unique_vals)]
 
     def render_nixtio_metrics_grid(metrics_list):
         """
@@ -921,22 +924,14 @@ if True:
         score_df = pd.DataFrame(score_data).sort_values("Overall Score", ascending=False).reset_index(drop=True)
         score_df.index = score_df.index + 1
         score_df = score_df.reset_index().rename(columns={"index": "Rank"})
+        # Convert all string columns to plain str to avoid LargeUtf8 Arrow serialization error
+        # Works across pandas 1.x, 2.x, and 3.x
+        for col in score_df.columns:
+            if score_df[col].dtype == "object" or str(score_df[col].dtype) in ("string", "str"):
+                score_df[col] = score_df[col].astype(str)
         
         st.markdown("<p class='chart-title'>Company Health Scorecard</p>", unsafe_allow_html=True)
-        st.dataframe(
-            score_df,
-            column_config={
-                "Overall Score": st.column_config.ProgressColumn(
-                    "Overall Score",
-                    help="Composite score",
-                    format="%d",
-                    min_value=0,
-                    max_value=100,
-                )
-            },
-            use_container_width=True,
-            hide_index=True
-        )
+        st.dataframe(score_df, use_container_width=True, hide_index=True)
         st.caption("Composite score across product, talent, brand, press and employer dimensions.")
         st.markdown("<br>", unsafe_allow_html=True)
 
@@ -977,7 +972,7 @@ if True:
         with st.container(border=True):
             fig_scatter = px.scatter(
                 sdf, x="Brand Momentum", y="Product Score", size="Open Roles",
-                color="Company", color_discrete_map=get_safe_cmap(sdf, "Company", cmap), text="Company",
+                color="Company", color_discrete_sequence=get_color_seq(sdf, "Company", cmap), text="Company",
                 hover_data={"Jobs": True, "Open Roles": False}
             )
             
@@ -1064,7 +1059,7 @@ if True:
                 date_col = tdf.columns[0]
                 val_cols = [c for c in tdf.columns if c != date_col]
                 long = tdf.melt(id_vars=[date_col], value_vars=val_cols, var_name="Company", value_name="Interest")
-                fig3 = px.line(long, x=date_col, y="Interest", color="Company", color_discrete_map=get_safe_cmap(long, "Company", cmap))
+                fig3 = px.line(long, x=date_col, y="Interest", color="Company", color_discrete_sequence=get_color_seq(long, "Company", cmap))
                 fig3.update_traces(line=dict(width=3, shape="spline"), mode="lines")
                 apply_layout(fig3, 300)
                 apply_nixtio_theme(fig3)
@@ -1384,7 +1379,7 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
             with st.container(border=True):
                 if news_data and any(v > 0 for v in news_data.values()):
                     ndf = pd.DataFrame([{"Company": k, "Mentions": v} for k, v in news_data.items()]).sort_values("Mentions", ascending=True)
-                    fig_news = px.bar(ndf, x="Mentions", y="Company", color="Company", color_discrete_map=get_safe_cmap(ndf, "Company", cmap), orientation="h", text="Mentions")
+                    fig_news = px.bar(ndf, x="Mentions", y="Company", color="Company", color_discrete_sequence=get_color_seq(ndf, "Company", cmap), orientation="h", text="Mentions")
                     fig_news.update_traces(textposition="outside", textfont=dict(color="#FFF"), marker_cornerradius=8)
                     apply_layout(fig_news, 400)
                     apply_nixtio_theme(fig_news)
@@ -1399,7 +1394,7 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                     tcols = [c for c in trends_df.columns if c not in ("date", "isPartial")]
                     avgs = trends_df[tcols].mean().reset_index()
                     avgs.columns = ["Company", "Avg Interest"]
-                    fig_pie = px.pie(avgs, names="Company", values="Avg Interest", color="Company", color_discrete_map=get_safe_cmap(avgs, "Company", cmap), hole=0.6)
+                    fig_pie = px.pie(avgs, names="Company", values="Avg Interest", color="Company", color_discrete_sequence=get_color_seq(avgs, "Company", cmap), hole=0.6)
                     fig_pie.update_traces(textposition='inside', textinfo='percent+label', marker=dict(line=dict(color='#15111B', width=2)))
                     apply_nixtio_theme(fig_pie)
                     fig_pie.update_layout(showlegend=False, height=400)
@@ -1415,7 +1410,7 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
             with st.container(border=True):
                 if jobs_data and any(v > 0 for v in jobs_data.values()):
                     jdf = pd.DataFrame([{"Company": k, "Open Roles": v} for k, v in jobs_data.items()]).sort_values("Open Roles", ascending=False)
-                    fig2 = px.bar(jdf, x="Company", y="Open Roles", color="Company", color_discrete_map=get_safe_cmap(jdf, "Company", cmap), text="Open Roles")
+                    fig2 = px.bar(jdf, x="Company", y="Open Roles", color="Company", color_discrete_sequence=get_color_seq(jdf, "Company", cmap), text="Open Roles")
                     fig2.update_traces(textposition="outside", textfont=dict(color="#FFF"), marker_cornerradius=8)
                     apply_layout(fig2, 350)
                     apply_nixtio_theme(fig2)
@@ -1429,7 +1424,7 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
                 if ratings_data:
                     rdf = pd.DataFrame([{"Company": k, "Rating": v["rating"]} for k, v in ratings_data.items() if v["rating"] > 0])
                     if not rdf.empty:
-                        fig1 = px.bar(rdf, x="Company", y="Rating", color="Company", color_discrete_map=get_safe_cmap(rdf, "Company", cmap), text="Rating")
+                        fig1 = px.bar(rdf, x="Company", y="Rating", color="Company", color_discrete_sequence=get_color_seq(rdf, "Company", cmap), text="Rating")
                         fig1.update_traces(textposition="outside", textfont=dict(color="#FFF"), width=0.5, marker_cornerradius=8)
                         fig1.update_yaxes(range=[0, 5])
                         apply_layout(fig1, 350)
