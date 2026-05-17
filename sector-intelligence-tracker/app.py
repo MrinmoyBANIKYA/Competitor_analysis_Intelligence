@@ -260,296 +260,12 @@ st.markdown(NIXTIO_CSS, unsafe_allow_html=True)
 # AUTHENTICATION ROUTING
 # ==============================================================================
 
-if not st.session_state.logged_in:
-    # ---------------- LOGIN PAGE REDESIGN ----------------
-    
-    # Inject Custom CSS for full-screen premium experience
-    st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Manrope:wght@700;800&family=Inter:wght@400;500;600&display=swap');
+# The login page has been removed per approved SaaS and user guidelines.
+# Everyone is granted access to view the NixTio dashboard directly.
+# SaaS features like report generation are gated behind JWT auth in the sidebar.
+st.session_state.logged_in = True
 
-    /* HIDE STREAMLIT CHROME COMPLETELY */
-    header[data-testid="stHeader"], 
-    section[data-testid="stSidebar"], 
-    footer {
-        display: none !important;
-    }
-
-    /* Reset background and padding */
-    .stApp {
-        background-color: #0D1117 !important;
-    }
-
-    [data-testid="stMain"] > div {
-        padding: 0 !important;
-        margin: 0 !important;
-        max-width: 100vw !important;
-    }
-
-    [data-testid="stVerticalBlock"] {
-        gap: 0 !important;
-    }
-
-    /* FULL VIEWPORT SPLIT LAYOUT */
-    .login-wrapper {
-        display: flex;
-        width: 100vw;
-        height: 100vh;
-        overflow: hidden;
-    }
-
-    .left-panel {
-        width: 60vw;
-        height: 100vh;
-        background: radial-gradient(circle at 20% 30%, #1A1F2B 0%, #0D1117 100%);
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        padding-left: 8vw;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .right-panel {
-        width: 40vw;
-        height: 100vh;
-        background-color: #0D1117;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-left: 1px solid #21262D;
-        position: relative;
-    }
-
-    /* WORDMARK & TAGLINE */
-    .wordmark {
-        font-family: 'Manrope', sans-serif;
-        font-weight: 700;
-        font-size: 3.5rem;
-        color: white;
-        margin: 0;
-        letter-spacing: -0.04em;
-        z-index: 10;
-    }
-
-    .tagline {
-        font-family: 'Inter', sans-serif;
-        font-size: 1.4rem;
-        color: #8B949E;
-        max-width: 450px;
-        line-height: 1.5;
-        margin-top: 1rem;
-        z-index: 10;
-    }
-
-    /* FLOATING METRIC CARDS */
-    .floating-card {
-        position: absolute;
-        background: rgba(255, 255, 255, 0.03);
-        backdrop-filter: blur(12px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 16px;
-        padding: 20px;
-        width: 200px;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
-        animation: float 8s infinite ease-in-out;
-        z-index: 5;
-    }
-
-    @keyframes float {
-        0%, 100% { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0.6; }
-        50% { transform: translateY(-30px) translateX(10px) rotate(2deg); opacity: 0.9; }
-    }
-
-    .card-1 { top: 15%; right: 15%; animation-delay: 0s; }
-    .card-2 { bottom: 25%; right: 10%; animation-delay: 2s; }
-    .card-3 { top: 45%; right: 30%; animation-delay: 4s; }
-
-    .metric-label { font-size: 0.75rem; color: #8B949E; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; font-family: 'Inter', sans-serif; font-weight: 600; }
-    .metric-value { font-size: 1.5rem; font-weight: 700; color: #378ADD; font-family: 'Manrope', sans-serif; }
-    .metric-delta { font-size: 0.85rem; color: #3FB950; margin-top: 4px; font-family: 'Inter', sans-serif; }
-
-    /* LOGIN CARD STYLING */
-    .login-card {
-        background: white;
-        padding: 3.5rem;
-        border-radius: 32px;
-        width: 100%;
-        max-width: 460px;
-        box-shadow: 0 40px 100px rgba(0, 0, 0, 0.6);
-        animation: slideIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
-    }
-
-    @keyframes slideIn {
-        from { opacity: 0; transform: translateY(20px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    .login-card h2 {
-        font-family: 'Manrope', sans-serif;
-        font-weight: 800;
-        font-size: 2rem;
-        color: #0D1117;
-        margin-bottom: 2.5rem;
-        text-align: left;
-        letter-spacing: -0.02em;
-    }
-
-    /* CUSTOM STREAMLIT ELEMENT OVERRIDES (RIGHT PANEL ONLY) */
-    div[data-testid="stTextInput"] input {
-        background-color: white !important;
-        border: 1px solid #D0D7DE !important;
-        border-radius: 14px !important;
-        color: #0D1117 !important;
-        padding: 1rem 1.2rem !important;
-        font-family: 'Inter', sans-serif !important;
-        font-size: 1rem !important;
-        transition: all 0.2s ease !important;
-    }
-
-    div[data-testid="stTextInput"] input:focus {
-        border-color: #378ADD !important;
-        box-shadow: 0 0 0 4px rgba(55, 138, 221, 0.15) !important;
-    }
-
-    div[data-testid="stTextInput"] label {
-        font-family: 'Inter', sans-serif !important;
-        font-weight: 600 !important;
-        color: #484F58 !important;
-        margin-bottom: 0.6rem !important;
-        font-size: 0.9rem !important;
-    }
-
-    .stButton > button {
-        background: #378ADD !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 14px !important;
-        padding: 1rem !important;
-        font-weight: 700 !important;
-        font-size: 1.1rem !important;
-        font-family: 'Manrope', sans-serif !important;
-        width: 100% !important;
-        margin-top: 2rem !important;
-        box-shadow: 0 8px 24px rgba(55, 138, 221, 0.3) !important;
-        transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
-    }
-
-    .stButton > button:hover {
-        background: #2D72B8 !important;
-        transform: translateY(-2px) !important;
-        box-shadow: 0 12px 32px rgba(55, 138, 221, 0.4) !important;
-    }
-
-    .early-access {
-        text-align: center;
-        margin-top: 2rem;
-        font-size: 0.95rem;
-        color: #8B949E;
-        font-family: 'Inter', sans-serif;
-    }
-
-    .early-access a {
-        color: #378ADD;
-        text-decoration: none;
-        font-weight: 600;
-        margin-left: 4px;
-    }
-    
-    .error-box {
-        color: #CF222E;
-        background: #FFEBE9;
-        border: 1px solid rgba(207, 34, 46, 0.2);
-        padding: 0.8rem;
-        border-radius: 12px;
-        font-family: 'Inter', sans-serif;
-        font-size: 0.9rem;
-        font-weight: 500;
-        margin-bottom: 1.5rem;
-        text-align: center;
-    }
-    
-    /* Ensure the Streamlit columns take full height */
-    [data-testid="column"] {
-        height: 100vh !important;
-        display: flex !important;
-        flex-direction: column !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # Use Streamlit columns for the 60/40 layout
-    col_left, col_right = st.columns([0.6, 0.4])
-
-    with col_left:
-        st.markdown(f"""
-        <div class="left-panel">
-            <h1 class="wordmark">NixTio</h1>
-            <p class="tagline">Real-time sector intelligence for India's sharpest operators</p>
-            
-            <!-- Animated Metric Cards -->
-            <div class="floating-card card-1">
-                <div class="metric-label">FinTech Momentum</div>
-                <div class="metric-value">84.2</div>
-                <div class="metric-delta">↑ 12.4%</div>
-            </div>
-            <div class="floating-card card-2">
-                <div class="metric-label">Market Velocity</div>
-                <div class="metric-value">0.92x</div>
-                <div class="metric-delta">↑ 0.05</div>
-            </div>
-            <div class="floating-card card-3">
-                <div class="metric-label">Sentiment Index</div>
-                <div class="metric-value">Strong Buy</div>
-                <div class="metric-delta">↑ Bullish</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col_right:
-        st.markdown("""
-        <style>
-        [data-testid="column"]:nth-of-type(2) {
-            background-color: #0D1117;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            border-left: 1px solid #21262D;
-            padding: 0 4vw !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-        
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
-        st.markdown('<h2>Sign in to NixTio</h2>', unsafe_allow_html=True)
-        
-        # Form for login
-        with st.form("login_form", clear_on_submit=False):
-            email = st.text_input("Email Address", placeholder="name@company.com")
-            password = st.text_input("Password", type="password", placeholder="••••••••")
-            
-            # Error placeholder
-            error_placeholder = st.empty()
-            
-            submitted = st.form_submit_button("Access Dashboard")
-            
-            if submitted:
-                # Get credentials from secrets
-                valid_creds = st.secrets.get("credentials", {})
-                valid_email = valid_creds.get("email", "admin@nixtio.com")
-                valid_password = valid_creds.get("password", "nixtio_secure_2024")
-                
-                if email == valid_email and password == valid_password:
-                    st.session_state.logged_in = True
-                    st.rerun()
-                else:
-                    error_placeholder.markdown('<div class="error-box">Incorrect credentials</div>', unsafe_allow_html=True)
-
-        st.markdown("""
-        <p class="early-access">Don't have an account? <a href="#">Request early access →</a></p>
-        </div>
-        """, unsafe_allow_html=True)
-else:
+if True:
     # ---------------- MAIN APPLICATION ----------------
     
     def apply_layout(fig, height=350):
@@ -636,9 +352,13 @@ else:
             
             with httpx.Client(timeout=120.0) as client:
                 progress_bar.progress(0.2, text="Requesting intelligence analysis...")
+                headers = {}
+                if "saas_token" in st.session_state and st.session_state.saas_token:
+                    headers["Authorization"] = f"Bearer {st.session_state.saas_token}"
                 resp = client.post(
                     api_url,
-                    json={"sector": sector_key, "companies": SECTORS[sector_key]["companies"]}
+                    json={"sector": sector_key, "companies": SECTORS[sector_key]["companies"]},
+                    headers=headers
                 )
                 resp.raise_for_status()
                 progress_bar.progress(0.8, text="Parsing intelligence response...")
@@ -763,23 +483,110 @@ else:
         elif report_menu == "Report History": view = "Report History"
         else: view = sys_view
 
-        # 5. Bottom User Profile
+        # 5. Multi-Tenant SaaS Profile & Auth Card
         st.markdown("---")
-        st.markdown("""
-        <div style="padding: 10px; background: rgba(255,255,255,0.03); border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);">
-            <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 8px;">
-                <div style="width: 32px; height: 32px; border-radius: 50%; background: #378ADD; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: white;">M</div>
-                <div>
-                    <div style="font-size: 14px; font-weight: 600; color: white;">Mrinmoy Banikya</div>
-                    <div style="font-size: 10px; color: #3FB950; font-weight: bold;">SUPER ADMIN</div>
+        if "saas_token" not in st.session_state or not st.session_state.saas_token:
+            st.markdown("<p style='font-size: 10px; color: #8B949E; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;'>🔒 SAAS ACCESS</p>", unsafe_allow_html=True)
+            auth_action = st.selectbox("Choose Action", ["Sign In", "Register Org"], label_visibility="collapsed")
+            
+            with st.form("saas_auth_form"):
+                email_input = st.text_input("Email", placeholder="name@company.com")
+                password_input = st.text_input("Password", type="password", placeholder="••••••••")
+                org_input = ""
+                if auth_action == "Register Org":
+                    org_input = st.text_input("Organization Name", placeholder="Acme Corp")
+                    
+                auth_submit = st.form_submit_button("Access Premium Features")
+                if auth_submit:
+                    import httpx
+                    try:
+                        if auth_action == "Sign In":
+                            resp = httpx.post("http://localhost:8000/auth/login", json={
+                                "email": email_input,
+                                "password": password_input
+                            })
+                        else:
+                            resp = httpx.post("http://localhost:8000/auth/register", json={
+                                "email": email_input,
+                                "password": password_input,
+                                "org_name": org_input
+                            })
+                        
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            st.session_state.saas_token = data["access_token"]
+                            
+                            # Get user context
+                            context_resp = httpx.get("http://localhost:8000/auth/me", headers={
+                                "Authorization": f"Bearer {data['access_token']}"
+                            })
+                            if context_resp.status_code == 200:
+                                st.session_state.saas_user = context_resp.json()
+                            st.success("Successfully authenticated!")
+                            st.rerun()
+                        else:
+                            st.error(f"Authentication failed: {resp.json().get('detail', 'Unknown error')}")
+                    except Exception as e:
+                        st.error(f"Error connecting to Auth API: {e}")
+        else:
+            user_ctx = st.session_state.get("saas_user", {})
+            plan_tier = user_ctx.get("plan_tier", "free").upper()
+            org_name = user_ctx.get("org_name", "NixTio Org")
+            email = user_ctx.get("email", "operator@nixtio.com")
+            
+            # Fetch Live Monthly Usage Metering Limits
+            usage_data = {"usage": 0, "limit": 5}
+            try:
+                import httpx
+                resp = httpx.get("http://localhost:8000/billing/usage", headers={
+                    "Authorization": f"Bearer {st.session_state.saas_token}"
+                })
+                if resp.status_code == 200:
+                    usage_data = resp.json()
+            except Exception:
+                pass
+            
+            # Display SaaS Card
+            st.markdown(f"""
+            <div style="padding: 14px; background: rgba(55,138,221,0.05); border-radius: 12px; border: 1px solid rgba(55,138,221,0.15); margin-bottom: 12px;">
+                <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                    <div style="width: 30px; height: 30px; border-radius: 50%; background: #378ADD; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: bold; color: white;">
+                        {email[0].upper() if email else "U"}
+                    </div>
+                    <div>
+                        <div style="font-size: 13px; font-weight: 700; color: white;">{org_name}</div>
+                        <div style="font-size: 9px; color: #8B949E;">{email}</div>
+                    </div>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.03); padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 8px;">
+                    <span style="font-size: 10px; color:#8B949E; font-weight: 600;">PLAN TIER</span>
+                    <span style="font-size: 10px; color:#3FB950; font-weight: 800; letter-spacing: 0.5px;">{plan_tier}</span>
+                </div>
+                <div style="font-size: 10px; color: #8B949E; margin-bottom: 4px; display:flex; justify-content:space-between;">
+                    <span>REPORT LIMIT METER</span>
+                    <span>{usage_data['usage']} / {usage_data['limit'] if usage_data['limit'] < 99999 else '∞'} used</span>
                 </div>
             </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        if st.button("Logout Dashboard", key="logout_btn_sidebar", use_container_width=True):
-            st.session_state.logged_in = False
-            st.rerun()
+            """, unsafe_allow_html=True)
+            
+            # Upgrade Plan via checkout stub
+            if plan_tier != "ENTERPRISE":
+                if st.button("🚀 Upgrade to Pro", key="upgrade_billing_btn", use_container_width=True, type="primary"):
+                    try:
+                        import httpx
+                        resp = httpx.post("http://localhost:8000/billing/create-checkout-session", json={"plan_tier": "pro"}, headers={
+                            "Authorization": f"Bearer {st.session_state.saas_token}"
+                        })
+                        if resp.status_code == 200:
+                            checkout_url = resp.json()["checkout_url"]
+                            st.success(f"Checkout Session Created! [Stripe Checkout URL]({checkout_url})")
+                    except Exception as e:
+                        st.error(f"Billing request failed: {e}")
+            
+            if st.button("Sign Out Account", key="saas_signout_btn", use_container_width=True):
+                st.session_state.saas_token = None
+                st.session_state.saas_user = None
+                st.rerun()
 
     # Demo Banner
     if st.session_state.demo_mode:
@@ -1766,34 +1573,41 @@ Keep each paragraph to 3 sentences max. Start each with a bold headline.
 
 
     elif view == "Generate Report":
+        st.markdown("<h2 class='page-header'>Generate Report</h2>", unsafe_allow_html=True)
         st.markdown("""
             <p style='color:#8E8D92; font-size:1.1rem; max-width:800px'>Compile latest intelligence, search momentum, 
             and talent velocity into a fully annotated executive PDF report.</p>
         """, unsafe_allow_html=True)
         
-        left, right = st.columns([1, 2])
-        with left:
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("📄 Generate Intelligence Report"):
-                with st.status("Requesting background generation...") as status:
-                    try:
-                        import httpx
-                        api_url = "http://localhost:8000/report/generate"
-                        
-                        # Prepare data for report (convert DFs to dicts)
-                        report_data = {}
-                        for k, v in sector_data.results.items():
-                            report_data[k] = v.copy()
-                            if isinstance(v.get("data"), pd.DataFrame):
-                                report_data[k]["data"] = v["data"].to_dict(orient="records")
-                        
-                        resp = httpx.post(api_url, json={
-                            "sector": selected_sector,
-                            "companies": companies,
-                            "data": report_data
-                        })
-                        resp.raise_for_status()
-                        job_id = resp.json()["job_id"]
+        st.markdown("<div style='height:1rem'></div>", unsafe_allow_html=True)
+        
+        if "saas_token" not in st.session_state or not st.session_state.saas_token:
+            st.warning("🔒 **SaaS Premium Feature Gated**\n\nReport generation is restricted to authenticated NixTio organizations. Please sign in or register your organization in the sidebar to generate custom executive PDF reports.")
+        else:
+            left, right = st.columns([1, 2])
+            with left:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("📄 Generate Intelligence Report"):
+                    with st.status("Requesting background generation...") as status:
+                        try:
+                            import httpx
+                            api_url = "http://localhost:8000/report/generate"
+                            
+                            # Prepare data for report (convert DFs to dicts)
+                            report_data = {}
+                            for k, v in sector_data.results.items():
+                                report_data[k] = v.copy()
+                                if isinstance(v.get("data"), pd.DataFrame):
+                                    report_data[k]["data"] = v["data"].to_dict(orient="records")
+                            
+                            headers = {"Authorization": f"Bearer {st.session_state.saas_token}"}
+                            resp = httpx.post(api_url, json={
+                                "sector": selected_sector,
+                                "companies": companies,
+                                "data": report_data
+                            }, headers=headers)
+                            resp.raise_for_status()
+                            job_id = resp.json()["job_id"]
                         
                         # Poll for status
                         status.update(label=f"Job {job_id} queued...", state="running")

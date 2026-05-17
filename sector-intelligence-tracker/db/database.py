@@ -22,6 +22,14 @@ AsyncSessionLocal = async_sessionmaker(
 
 Base = declarative_base()
 
+_initialized = False
+
 async def get_db():
+    global _initialized
+    if not _initialized:
+        # Auto-create all tables in local environments
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        _initialized = True
     async with AsyncSessionLocal() as session:
         yield session

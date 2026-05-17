@@ -82,3 +82,38 @@ async def get_snapshots_for_sector(db: AsyncSession, sector_id: int, limit: int 
         .limit(limit)
     )
     return result.scalars().all()
+
+# --- RefreshToken CRUD ---
+async def create_refresh_token(db: AsyncSession, user_id: int, token: str, expires_at: datetime):
+    db_token = models.RefreshToken(user_id=user_id, token=token, expires_at=expires_at)
+    db.add(db_token)
+    await db.commit()
+    await db.refresh(db_token)
+    return db_token
+
+async def get_refresh_token(db: AsyncSession, token: str):
+    result = await db.execute(select(models.RefreshToken).where(models.RefreshToken.token == token))
+    return result.scalars().first()
+
+async def delete_refresh_token(db: AsyncSession, token: str):
+    await db.execute(delete(models.RefreshToken).where(models.RefreshToken.token == token))
+    await db.commit()
+
+# --- UsageEvent CRUD ---
+async def log_usage_event(db: AsyncSession, org_id: int, event_type: str, metadata: dict = None):
+    db_event = models.UsageEvent(org_id=org_id, event_type=event_type, metadata_json=metadata or {})
+    db.add(db_event)
+    await db.commit()
+    await db.refresh(db_event)
+    return db_event
+
+async def get_org_usage_for_month(db: AsyncSession, org_id: int, year: int, month: int):
+    from sqlalchemy import extract, func
+    result = await db.execute(
+        select(func.count(models.UsageEvent.id))
+        .where(models.UsageEvent.org_id == org_id)
+        .where(models.UsageEvent.event_type == "report_generation")
+        .where(extract('year', models.UsageEvent.timestamp) == year)
+        .where(extract('month', models.UsageEvent.timestamp) == month)
+    )
+    return result.scalar() or 0

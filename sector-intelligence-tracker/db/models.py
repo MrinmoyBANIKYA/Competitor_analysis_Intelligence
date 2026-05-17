@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Text, JSON
 from sqlalchemy.orm import relationship
 from datetime import datetime
 from db.database import Base
@@ -8,8 +8,9 @@ class Org(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True)
     plan_tier = Column(String, default="free")
-    api_key_hash = Column(String, unique=True, index=True)
+    api_key_hash = Column(String, unique=True, index=True, nullable=True)
     users = relationship("User", back_populates="org")
+    usage_events = relationship("UsageEvent", back_populates="org")
 
 class User(Base):
     __tablename__ = "users"
@@ -20,6 +21,7 @@ class User(Base):
     role = Column(String, default="user")
     created_at = Column(DateTime, default=datetime.utcnow)
     org = relationship("Org", back_populates="users")
+    refresh_tokens = relationship("RefreshToken", back_populates="user")
 
 class Sector(Base):
     __tablename__ = "sectors"
@@ -49,3 +51,23 @@ class TrendSnapshot(Base):
     raw_json = Column(Text) # or use JSON type for Postgres
     signal_score = Column(Float)
     sector = relationship("Sector", back_populates="snapshots")
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+    id = Column(Integer, primary_key=True, index=True)
+    token = Column(String, unique=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    expires_at = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    
+    user = relationship("User", back_populates="refresh_tokens")
+
+class UsageEvent(Base):
+    __tablename__ = "usage_events"
+    id = Column(Integer, primary_key=True, index=True)
+    org_id = Column(Integer, ForeignKey("orgs.id"))
+    event_type = Column(String)  # e.g., "report_generation", "api_call"
+    timestamp = Column(DateTime, default=datetime.utcnow)
+    metadata_json = Column(JSON, nullable=True)
+    
+    org = relationship("Org", back_populates="usage_events")
